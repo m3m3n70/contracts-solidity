@@ -137,4 +137,64 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         Reserve storage reserve = reserves[_reserveToken];
         return ( reserveBalance(_reserveToken) * 1e6 ) / reserve.weight;
     }
+
+    /**
+      * Upgrade functions. Override to allow upgrades by owner.
+    **/
+
+    /**
+      * @dev withdraws ether
+      * can only be called by the owner
+      * can only be called if the converter has an ETH reserve
+      *
+      * @param _to  address to send the ETH to
+    */
+    function withdrawETH(address payable _to)
+        public
+        override
+        protected
+        ownerOnly
+        validReserve(ETH_RESERVE_ADDRESS)
+    {
+        _to.transfer(address(this).balance);
+
+        // sync the ETH reserve balance
+        syncReserveBalance(ETH_RESERVE_ADDRESS);
+    }
+
+    /**
+      * @dev transfers the anchor ownership
+      * the new owner needs to accept the transfer
+      *
+      * @param _newOwner    new token owner
+    */
+    function transferAnchorOwnership(address _newOwner)
+        public
+        override
+        ownerOnly
+    {
+        anchor.transferOwnership(_newOwner);
+    }
+
+    /**
+      * @dev withdraws tokens held by the converter and sends them to an account
+      * can only be called by the owner
+      *
+      * @param _token   ERC20 token contract address
+      * @param _to      account to receive the new amount
+      * @param _amount  amount to withdraw
+    */
+    function withdrawTokens(IERC20Token _token, address _to, uint256 _amount)
+        public
+        override
+        protected
+        ownerOnly
+    {
+        TokenHolder.withdrawTokens(_token, _to, _amount);
+
+        // if the token is a reserve token, sync the reserve balance
+        if (reserves[_token].isSet)
+            syncReserveBalance(_token);
+    }
+
 }

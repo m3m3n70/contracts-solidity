@@ -15,6 +15,11 @@ const ConverterFactory = artifacts.require('ConverterFactory');
 const ConverterUpgrader = artifacts.require('ConverterUpgrader');
 
 contract('DyamicLiquidTokenConverter', accounts => {
+    const MIN_RETURN = new BN(1);
+    const WEIGHT_20_PERCENT = new BN(200000);
+    const WEIGHT_25_PERCENT = new BN(250000);
+    const WEIGHT_100_PERCENT = new BN(1000000);
+
     const createConverter = async (tokenAddress, registryAddress = contractRegistry.address, maxConversionFee = 0) => {
         return DynamicLiquidTokenConverter.new(tokenAddress, registryAddress, maxConversionFee);
     };
@@ -25,7 +30,7 @@ contract('DyamicLiquidTokenConverter', accounts => {
             isETHReserve: false,
             maxConversionFee: 0,
             initialReserveBalance: new BN(5000),
-            initialReserveWeight: 250000 // 25%
+            initialReserveWeight: WEIGHT_25_PERCENT
         };
 
         if (typeof activate === 'boolean') {
@@ -91,10 +96,6 @@ contract('DyamicLiquidTokenConverter', accounts => {
     let upgrader;
     const sender = accounts[0];
 
-    const MIN_RETURN = new BN(1);
-    const WEIGHT_20_PERCENT = new BN(200000);
-    const WEIGHT_100_PERCENT = new BN(1000000);
-
     before(async () => {
         // The following contracts are unaffected by the underlying tests, this can be shared.
         contractRegistry = await ContractRegistry.new();
@@ -138,6 +139,99 @@ contract('DyamicLiquidTokenConverter', accounts => {
         const converter = await initConverter(true, false);
 
         await expectRevert(converter.setStepWeight(new BN(10000)), 'ERR_ACTIVE');
+    });
+
+    describe('converter upgrade', () => {
+        const INITIAL_RESERVE_BALANCE = new BN(10001); // threshold at 100% weight
+        const ONE = new BN(1);
+
+        const getConverter = async (params = {}) => await initConverter({
+            activate: true,
+            isETHReserve: false,
+            initialReserveWeight: WEIGHT_100_PERCENT,
+            initialReserveBalance: INITIAL_RESERVE_BALANCE,
+            marketCapThreshold: INITIAL_RESERVE_BALANCE.sub(ONE),
+            ...params
+        });
+
+        it('allows ETH to be withdrawn by owner', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+
+            const ethPrevBalance = await getBalance(reserveToken, getReserve1Address(true), sender);
+
+            const converterReserveBalance = await converter.reserveBalance(getReserve1Address(true));
+
+            const res = await converter.withdrawETH(sender);
+
+            const ethNewBalance = await getBalance(reserveToken, getReserve1Address(true), sender);
+
+            const balanceChange = converterReserveBalance.sub(await getTransactionCost(res));
+
+            expect(ethNewBalance).to.be.bignumber.equal(ethPrevBalance.add(balanceChange));
+        });
+
+        it('allows non-ETH reserve to be withdrawn by owner', async () => {
+            const converter = await getConverter({ isETHReserve: false });
+
+            const tokenPrevBalance = await getBalance(reserveToken, getReserve1Address(false), sender);
+
+            const converterReserveBalance = await converter.reserveBalance(getReserve1Address(false));
+
+            await converter.withdrawTokens(getReserve1Address(false), sender, converterReserveBalance);
+
+            const tokenNewBalance = await getBalance(reserveToken, getReserve1Address(false), sender);
+
+            expect(tokenNewBalance).to.be.bignumber.equal(tokenPrevBalance.add(converterReserveBalance));
+        });
+
+        it('allows non-reserve tokens to be withdrawn by owner', async () => {
+            const nonReserveToken = await SmartToken.new('NoneReserveTKN', 'NRT1', 200000);
+            await nonReserveToken.issue(sender, 20000);
+
+            const converter = await getConverter({ isETHReserve: false });
+
+            await nonReserveToken.transfer(converter.address, 20000);
+
+            const originalBalance = await getBalance(nonReserveToken, nonReserveToken.address, sender);
+            expect(originalBalance).to.be.bignumber.equal(new BN(0));
+
+            await converter.withdrawTokens(nonReserveToken.address, sender, 10000);
+
+            const newBalance = await getBalance(nonReserveToken, nonReserveToken.address, sender);
+
+            expect(newBalance).to.be.bignumber.equal(new BN(10000));
+        });
+
+        it('reduces reserve balance when non eth reserve is withdrawn', async () => {
+            const converter = await getConverter({ isETHReserve: false });
+
+            const converterReserveBalance = await converter.reserveBalance(getReserve1Address(false));
+
+            await converter.withdrawTokens(getReserve1Address(false), sender, converterReserveBalance);
+
+            const newConverterReserveBalance = await converter.reserveBalance(getReserve1Address(false));
+
+            expect(newConverterReserveBalance).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('reduces reserve balance when eth is withdrawn', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+
+            await converter.withdrawETH(sender);
+
+            const converterReserveBalance = await converter.reserveBalance(getReserve1Address(true));
+
+            expect(converterReserveBalance).to.be.bignumber.equal(new BN(0));
+        });
+
+        it('allows anchor to be transferred to owner', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+
+            await converter.transferAnchorOwnership(sender);
+            await token.acceptOwnership();
+
+            expect(await token.owner()).to.be.equal(sender);
+        });
     });
 
     [false, true].forEach((isETHReserve) => {

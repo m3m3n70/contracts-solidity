@@ -229,6 +229,7 @@ abstract contract ConverterBase is IConverter, TokenHandler, TokenHolder, Contra
     function withdrawETH(address payable _to)
         public
         override
+        virtual
         protected
         ownerOnly
         validReserve(ETH_RESERVE_ADDRESS)
@@ -287,6 +288,7 @@ abstract contract ConverterBase is IConverter, TokenHandler, TokenHolder, Contra
     */
     function transferAnchorOwnership(address _newOwner)
         public
+        virtual
         override
         ownerOnly
         only(CONVERTER_UPGRADER)
@@ -331,6 +333,7 @@ abstract contract ConverterBase is IConverter, TokenHandler, TokenHolder, Contra
     */
     function withdrawTokens(IERC20Token _token, address _to, uint256 _amount)
         public
+        virtual
         override(IConverter, TokenHolder)
         protected
         ownerOnly
