@@ -14,7 +14,7 @@ const ERC20Token = artifacts.require('ERC20Token');
 const ConverterFactory = artifacts.require('ConverterFactory');
 const ConverterUpgrader = artifacts.require('ConverterUpgrader');
 
-contract('DyamicLiquidTokenConverter', accounts => {
+contract('DynamicLiquidTokenConverter', accounts => {
     const MIN_RETURN = new BN(1);
     const WEIGHT_20_PERCENT = new BN(200000);
     const WEIGHT_25_PERCENT = new BN(250000);
@@ -154,6 +154,125 @@ contract('DyamicLiquidTokenConverter', accounts => {
             ...params
         });
 
+        // XXX - start with upgrade in test
+        const upgrade = async (oldConverter) => {
+            const anchor = await oldConverter.anchor();
+            const maxConversionFee = await oldConverter.maxConversionFee();
+
+            // Dynamic converter specific properties
+            const minimumWeight = await oldConverter.minimumWeight();
+            const stepWeight = await oldConverter.stepWeight();
+            const marketCapThreshold = await oldConverter.marketCapThreshold();
+
+            const newConverter = await createConverter(anchor, contractRegistry.address, maxConversionFee);
+
+            const reserveAddress = await oldConverter.reserveTokens(0);
+            const { weight, balance } = await oldConverter.reserves(reserveAddress);
+
+            await newConverter.addReserve(reserveAddress, weight);
+
+            if (await oldConverter.hasETHReserve()) {
+                await oldConverter.withdrawETH(newConverter.address);
+            }
+            else {
+                await oldConverter.withdrawTokens(reserveAddress, newConverter.address, balance);
+            }
+
+            await newConverter.setMinimumWeight(minimumWeight);
+            await newConverter.setStepWeight(stepWeight);
+            await newConverter.setMarketCapThreshold(marketCapThreshold);
+
+            await oldConverter.transferAnchorOwnership(newConverter.address);
+            await newConverter.acceptAnchorOwnership();
+
+            return newConverter;
+        };
+
+        it('transfers anchor to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+            const anchor = await converter.anchor();
+
+            // pre-condition
+            expect(await token.owner()).to.be.equal(converter.address, 'Initial anchor owner should be converter');
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.anchor()).to.be.equal(anchor, 'Anchor not transferred to new converter');
+            expect(await token.owner()).to.be.equal(newConverter.address, 'Anchor ownership not transferred to new converter');
+        });
+
+        it('transfers ETH reserve to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.reserveTokens(0)).to.be.equal(getReserve1Address(true));
+        });
+
+        it('transfers maxConversionFee to new converter', async () => {
+            const converter = await getConverter({ maxConversionFee: new BN(250000) });
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.maxConversionFee()).to.be.bignumber.equal(new BN(250000));
+        });
+
+        it('transfers non-ETH reserve to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: false });
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.reserveTokens(0)).to.be.equal(getReserve1Address(false));
+        });
+
+        it('transfers ETH reserve weight to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+
+            const originalWeight = await converter.reserveWeight(getReserve1Address(true));
+
+            const newConverter = await upgrade(converter);
+
+            const newReserveWeight = await newConverter.reserveWeight(getReserve1Address(true));
+
+            expect(newReserveWeight).to.be.bignumber.equal(originalWeight);
+        });
+
+        it('transfers non-ETH reserve weight to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: false });
+
+            const originalWeight = await converter.reserveWeight(getReserve1Address(false));
+
+            const newConverter = await upgrade(converter);
+
+            const newReserveWeight = await newConverter.reserveWeight(getReserve1Address(false));
+
+            expect(newReserveWeight).to.be.bignumber.equal(originalWeight);
+        });
+
+        it('transfers ETH reserve balance to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: true });
+
+            const originalBalance = await converter.reserveBalance(getReserve1Address(true));
+
+            const newConverter = await upgrade(converter);
+
+            const newReserveBalance = await newConverter.reserveBalance(getReserve1Address(true));
+
+            expect(newReserveBalance).to.be.bignumber.equal(originalBalance);
+        });
+
+        it('transfers non-ETH reserve balance to new converter', async () => {
+            const converter = await getConverter({ isETHReserve: false });
+
+            const originalBalance = await converter.reserveBalance(getReserve1Address(false));
+
+            const newConverter = await upgrade(converter);
+
+            const newReserveBalance = await newConverter.reserveBalance(getReserve1Address(false));
+
+            expect(newReserveBalance).to.be.bignumber.equal(originalBalance);
+        });
+
         it('allows ETH to be withdrawn by owner', async () => {
             const converter = await getConverter({ isETHReserve: true });
 
@@ -231,6 +350,54 @@ contract('DyamicLiquidTokenConverter', accounts => {
             await token.acceptOwnership();
 
             expect(await token.owner()).to.be.equal(sender);
+        });
+
+        it('transfers minimumWeight to new converter', async () => {
+            const converter = await getConverter({ activate: false });
+
+            const minimumWeight = new BN(10000);
+
+            await converter.setMinimumWeight(minimumWeight);
+
+            // activate
+            await token.transferOwnership(converter.address);
+            await converter.acceptTokenOwnership();
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.minimumWeight()).to.be.bignumber.equal(minimumWeight);
+        });
+
+        it('transfers stepWeight to new converter', async () => {
+            const converter = await getConverter({ activate: false });
+
+            const stepWeight = new BN(5000);
+
+            await converter.setStepWeight(stepWeight);
+
+            // activate
+            await token.transferOwnership(converter.address);
+            await converter.acceptTokenOwnership();
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.stepWeight()).to.be.bignumber.equal(stepWeight);
+        });
+
+        it('transfers marketCapThreshold to new converter', async () => {
+            const converter = await getConverter({ activate: false });
+
+            const marketCapThreshold = new BN(5000032);
+
+            await converter.setMarketCapThreshold(marketCapThreshold);
+
+            // activate
+            await token.transferOwnership(converter.address);
+            await converter.acceptTokenOwnership();
+
+            const newConverter = await upgrade(converter);
+
+            expect(await newConverter.marketCapThreshold()).to.be.bignumber.equal(marketCapThreshold);
         });
     });
 

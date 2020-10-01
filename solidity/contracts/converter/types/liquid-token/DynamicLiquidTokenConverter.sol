@@ -16,8 +16,8 @@ import "../../../converter/types/liquid-token/LiquidTokenConverter.sol";
 contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     uint32 public minimumWeight = 30000;
     uint32 public stepWeight = 10000;
+    uint256 public marketCapThreshold = 10000 ether;
     uint256 lastWeightAdjustmentMarketCap = 0;
-    uint256 marketCapThreshold = 10000 ether;
 
     event ReserveTokenWeightUpdate(uint32 _prevWeight, uint32 _newWeight, uint256 _percentage, uint256 _balance);
 
@@ -37,16 +37,6 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         public
     {
     }
-
-    // XXX - do we want to make this a new type?
-    // /**
-    //   * @dev returns the converter type
-    //   *
-    //   * @return see the converter types in the the main contract doc
-    // */
-    // function converterType() public pure override returns (uint16) {
-    //     return 0;
-    // }
 
     /**
       * @dev updates the market cap threshold
@@ -139,7 +129,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     }
 
     /**
-      * Upgrade functions. Override to allow upgrades by owner.
+      * Upgrade functions. Overriden to allow upgrades by owner.
     **/
 
     /**
