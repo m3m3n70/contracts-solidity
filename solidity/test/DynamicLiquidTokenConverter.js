@@ -7,7 +7,7 @@ const { ZERO_ADDRESS } = constants;
 const BancorNetwork = artifacts.require('BancorNetwork');
 const DynamicLiquidTokenConverter = artifacts.require('DynamicLiquidTokenConverter');
 const LiquidTokenConverterFactory = artifacts.require('LiquidTokenConverterFactory');
-const SmartToken = artifacts.require('SmartToken');
+const DSToken = artifacts.require('DSToken');
 const BancorFormula = artifacts.require('BancorFormula');
 const ContractRegistry = artifacts.require('ContractRegistry');
 const ERC20Token = artifacts.require('ERC20Token');
@@ -40,7 +40,7 @@ contract('DynamicLiquidTokenConverter', accounts => {
             params = { ...params, ...activate };
         }
 
-        token = await SmartToken.new('Token1', 'TKN1', 2);
+        token = await DSToken.new('Token1', 'TKN1', 2);
         tokenAddress = token.address;
 
         const converter = await createConverter(tokenAddress, contractRegistry.address, params.maxConversionFee);
@@ -117,7 +117,7 @@ contract('DynamicLiquidTokenConverter', accounts => {
         upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS);
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
 
-        const token = await SmartToken.new('Token1', 'TKN1', 2);
+        const token = await DSToken.new('Token1', 'TKN1', 2);
         tokenAddress = token.address;
 
         reserveToken = await ERC20Token.new('ERC Token 1', 'ERC1', 18, 1000000000);
@@ -304,7 +304,7 @@ contract('DynamicLiquidTokenConverter', accounts => {
         });
 
         it('allows non-reserve tokens to be withdrawn by owner', async () => {
-            const nonReserveToken = await SmartToken.new('NoneReserveTKN', 'NRT1', 200000);
+            const nonReserveToken = await DSToken.new('NoneReserveTKN', 'NRT1', 200000);
             await nonReserveToken.issue(sender, 20000);
 
             const converter = await getConverter({ isETHReserve: false });

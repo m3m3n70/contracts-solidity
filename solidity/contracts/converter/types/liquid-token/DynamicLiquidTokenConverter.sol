@@ -29,7 +29,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
       * @param  _maxConversionFee   maximum conversion fee, represented in ppm
     */
     constructor(
-        ISmartToken _token,
+        IDSToken _token,
         IContractRegistry _registry,
         uint32 _maxConversionFee
     )
