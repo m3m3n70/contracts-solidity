@@ -141,7 +141,7 @@ contract('DynamicLiquidTokenConverter', accounts => {
         await expectRevert(converter.setStepWeight(new BN(10000)), 'ERR_ACTIVE');
     });
 
-    describe('converter upgrade', () => {
+    describe('converter upgrade by owner', () => {
         const INITIAL_RESERVE_BALANCE = new BN(10001); // threshold at 100% weight
         const ONE = new BN(1);
 
@@ -154,7 +154,7 @@ contract('DynamicLiquidTokenConverter', accounts => {
             ...params
         });
 
-        // XXX - start with upgrade in test
+        // demonstrate an upgrade by owner
         const upgrade = async (oldConverter) => {
             const anchor = await oldConverter.anchor();
             const maxConversionFee = await oldConverter.maxConversionFee();
