@@ -92,20 +92,20 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         ownerOnly
     {
         uint256 currentMarketCap = getMarketCap(_reserveToken);
-        require(currentMarketCap > (lastWeightAdjustmentMarketCap + marketCapThreshold), "ERR_MARKET_CAP_BELOW_THRESHOLD");
+        require(currentMarketCap > (lastWeightAdjustmentMarketCap.add(marketCapThreshold)), "ERR_MARKET_CAP_BELOW_THRESHOLD");
 
         Reserve storage reserve = reserves[_reserveToken];
-        uint256 newWeight = reserve.weight - stepWeight;
+        uint256 newWeight = uint256(reserve.weight).sub(stepWeight);
         uint32 oldWeight = reserve.weight;
         require(newWeight >= minimumWeight, "ERR_INVALID_RESERVE_WEIGHT");
 
-        uint256 percentage = PPM_RESOLUTION - (( newWeight * 1e6 ) / reserve.weight );
+        uint256 percentage = uint256(PPM_RESOLUTION).sub(newWeight.mul(1e6).div(reserve.weight));
 
         uint32 weight = uint32(newWeight);
         reserve.weight = weight;
         reserveRatio = weight;
 
-        uint256 balance = ( reserveBalance(_reserveToken) * percentage ) / 1e6;
+        uint256 balance = reserveBalance(_reserveToken).mul(percentage).div(1e6);
 
         if (_reserveToken == ETH_RESERVE_ADDRESS)
           msg.sender.transfer(balance);
@@ -125,7 +125,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         returns(uint256)
     {
         Reserve storage reserve = reserves[_reserveToken];
-        return ( reserveBalance(_reserveToken) * 1e6 ) / reserve.weight;
+        return reserveBalance(_reserveToken).mul(1e6).div(reserve.weight);
     }
 
     /**
