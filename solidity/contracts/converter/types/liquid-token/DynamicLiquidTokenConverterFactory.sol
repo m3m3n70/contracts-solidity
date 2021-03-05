@@ -2,11 +2,12 @@
 pragma solidity 0.6.12;
 import "./DynamicLiquidTokenConverter.sol";
 import "../../../token/interfaces/IDSToken.sol";
+import "../../../utility/TokenHolder.sol";
 
 /*
     DynamicLiquidTokenConverter Factory
 */
-contract DynamicLiquidTokenConverterFactory {
+contract DynamicLiquidTokenConverterFactory is TokenHolder {
     IERC20Token internal constant ETH_RESERVE_ADDRESS = IERC20Token(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     event NewConverter(DynamicLiquidTokenConverter indexed _converter, address indexed _owner);
 
@@ -36,20 +37,20 @@ contract DynamicLiquidTokenConverterFactory {
       virtual
       returns (DynamicLiquidTokenConverter)
     {
-        _anchor.acceptOwnership();
-
         DynamicLiquidTokenConverter converter = new DynamicLiquidTokenConverter(IDSToken(address(_anchor)), _registry, _maxConversionFee);
 
         require(_reserveToken == ETH_RESERVE_ADDRESS ? msg.value == _reserveBalance : msg.value == 0, "ERR_ETH_AMOUNT_MISMATCH");
 
         converter.addReserve(_reserveToken, _reserveWeight);
 
-        address(converter).transfer(msg.value);
+        if (_reserveBalance > 0 && _reserveToken == ETH_RESERVE_ADDRESS)
+            address(converter).transfer(msg.value);
 
         converter.setMinimumWeight(_minimumWeight);
         converter.setStepWeight(_stepWeight);
         converter.setMarketCapThreshold(_marketCapThreshold);
 
+        _anchor.acceptOwnership();
         _anchor.transferOwnership(address(converter));
         converter.acceptAnchorOwnership();
 
