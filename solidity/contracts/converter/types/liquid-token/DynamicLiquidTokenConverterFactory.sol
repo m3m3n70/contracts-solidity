@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 import "./DynamicLiquidTokenConverter.sol";
 import "../../../token/interfaces/IDSToken.sol";
 import "../../../utility/TokenHolder.sol";
+import "../../../token/DSToken.sol";
 
 /*
     DynamicLiquidTokenConverter Factory
@@ -10,6 +11,52 @@ import "../../../utility/TokenHolder.sol";
 contract DynamicLiquidTokenConverterFactory is TokenHolder {
     IERC20Token internal constant ETH_RESERVE_ADDRESS = IERC20Token(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     event NewConverter(DynamicLiquidTokenConverter indexed _converter, address indexed _owner);
+    event NewToken(DSToken indexed _token);
+
+    /**
+      * @dev creates a new token & dynamic converter
+      *
+      * @param _registry          address of a contract registry contract
+      * @param _maxConversionFee  maximum conversion fee, represented in ppm
+      *
+      * @return a new token
+    */
+    function createToken(
+      string memory _name,
+      string memory _symbol,
+      uint8 _decimals,
+      IERC20Token _reserveToken,
+      uint32 _reserveWeight,
+      uint256 _reserveBalance,
+      IContractRegistry _registry,
+      uint32 _maxConversionFee,
+      uint32 _minimumWeight,
+      uint32 _stepWeight,
+      uint256 _marketCapThreshold
+    )
+      public
+      payable
+      virtual
+      returns (DSToken)
+    {
+        DSToken token = new DSToken(_name, _symbol, _decimals);
+
+        emit NewToken(token);
+
+        createConverter(
+          token,
+          _reserveToken,
+          _reserveWeight,
+          _reserveBalance,
+          _registry,
+          _maxConversionFee,
+          _minimumWeight,
+          _stepWeight,
+          _marketCapThreshold
+        );
+
+        return token;
+    }
 
     /**
       * @dev creates a new converter with the given arguments and transfers
@@ -50,7 +97,9 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
         converter.setStepWeight(_stepWeight);
         converter.setMarketCapThreshold(_marketCapThreshold);
 
-        _anchor.acceptOwnership();
+        if (_anchor.owner() != address(this))
+          _anchor.acceptOwnership();
+
         _anchor.transferOwnership(address(converter));
         converter.acceptAnchorOwnership();
 
