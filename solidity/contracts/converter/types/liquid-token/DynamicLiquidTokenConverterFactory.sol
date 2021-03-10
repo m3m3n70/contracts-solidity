@@ -16,8 +16,19 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
     /**
       * @dev creates a new token & dynamic converter
       *
-      * @param _registry          address of a contract registry contract
-      * @param _maxConversionFee  maximum conversion fee, represented in ppm
+      * @param _name                token name
+      * @param _symbol              token short symbol, minimum 1 character
+      * @param _decimals            number of decimals
+      * @param _initialSupply       initial token supply - issued to caller
+      * @param _reserveToken        token to use as the reserve in the converter
+      * @param _reserveBalance      initial balance to give the converter in the
+      *                             reserve token. caller must have approved the token
+      *                             or sent the value in the case of and ETH reserve
+      * @param _registry            address of a contract registry contract
+      * @param _maxConversionFee    maximum conversion fee, represented in ppm
+      * @param _minimumWeight       minimum that reserve weight can be reduced to. value in PPM
+      * @param _stepWeight          amount that weight is reduce with each call. value in PPM
+      * @param _marketCapThreshold  value that market cap must increase between weight reductions.
       *
       * @return a new token
     */
@@ -25,6 +36,7 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
       string memory _name,
       string memory _symbol,
       uint8 _decimals,
+      uint256 _initialSupply,
       IERC20Token _reserveToken,
       uint32 _reserveWeight,
       uint256 _reserveBalance,
@@ -40,6 +52,8 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
       returns (DSToken)
     {
         DSToken token = new DSToken(_name, _symbol, _decimals);
+
+        token.issue(msg.sender, _initialSupply);
 
         emit NewToken(token);
 
@@ -62,9 +76,16 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
       * @dev creates a new converter with the given arguments and transfers
       * the ownership to the caller
       *
-      * @param _anchor            anchor governed by the converter
-      * @param _registry          address of a contract registry contract
-      * @param _maxConversionFee  maximum conversion fee, represented in ppm
+      * @param _anchor              anchor governed by the converter
+      * @param _reserveToken        token to use as the reserve in the converter
+      * @param _reserveBalance      initial balance to give the converter in the
+      *                             reserve token. caller must have approved the token
+      *                             or sent the value in the case of and ETH reserve
+      * @param _registry            address of a contract registry contract
+      * @param _maxConversionFee    maximum conversion fee, represented in ppm
+      * @param _minimumWeight       minimum that reserve weight can be reduced to. value in PPM
+      * @param _stepWeight          amount that weight is reduce with each call. value in PPM
+      * @param _marketCapThreshold  value that market cap must increase between weight reductions.
       *
       * @return a new converter
     */
