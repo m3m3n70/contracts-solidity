@@ -111,8 +111,11 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
 
         converter.addReserve(_reserveToken, _reserveWeight);
 
-        if (_reserveBalance > 0 && _reserveToken == ETH_RESERVE_ADDRESS)
-            address(converter).transfer(msg.value);
+        if (_reserveBalance > 0)
+          if (_reserveToken == ETH_RESERVE_ADDRESS)
+              address(converter).transfer(msg.value);
+          else
+              safeTransferFrom(_reserveToken, msg.sender, address(converter), _reserveBalance);
 
         converter.setMinimumWeight(_minimumWeight);
         converter.setStepWeight(_stepWeight);

@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { expectEvent, BN, balance } = require('@openzeppelin/test-helpers');
+const { expectEvent, BN } = require('@openzeppelin/test-helpers');
 
 const { ETH_RESERVE_ADDRESS } = require('./helpers/Constants');
 
@@ -80,56 +80,63 @@ contract('DynamicLiquidTokenConverterFactory', accounts => {
             expectEvent(res, 'NewToken', { _token: token.address });
         });
 
-        // it('should create token with ETH reserve', async () => {
-        //     const reserveWeight = new BN('910000');
-        //     const reserveBalance = new BN('100000009');
-        //     const marketCapThreshold = new BN('10000001');
-        //     const minimumWeight = new BN('20000');
-        //     const stepWeight = new BN('30000');
+        it('should create token with ERC20 reserve', async () => {
+            const reserveToken = await DSToken.new('Token1', 'TKN1', 18);
+            reserveToken.issue(owner, 100000009);
 
-        //     const res = await factory.createToken(
-        //         'tokeen',
-        //         'TKEN',
-        //         18,
-        //         ETH_RESERVE_ADDRESS,
-        //         reserveWeight,
-        //         reserveBalance,
-        //         contractRegistry.address,
-        //         MAX_CONVERSION_FEE,
-        //         minimumWeight,
-        //         stepWeight,
-        //         marketCapThreshold,
-        //         { value: reserveBalance }
-        //     );
+            const reserveWeight = new BN('910000');
+            const reserveBalance = new BN('100000009');
+            const marketCapThreshold = new BN('10000001');
+            const minimumWeight = new BN('20000');
+            const stepWeight = new BN('30000');
+            const initialSupply = new BN('21000000000000000000000');
 
-        //     const tokenAddress = await factory.createdToken.call();
+            await reserveToken.approve(factory.address, reserveBalance);
 
-        //     const token = await DSToken.at(tokenAddress);
-        //     const converter = await DynamicLiquidTokenConverter.at(await token.owner.call());
+            const res = await factory.createToken(
+                'tokeen',
+                'TKEN',
+                18,
+                initialSupply,
+                reserveToken.address,
+                reserveWeight,
+                reserveBalance,
+                contractRegistry.address,
+                MAX_CONVERSION_FEE,
+                minimumWeight,
+                stepWeight,
+                marketCapThreshold
+            );
 
-        //     const reserveTokenAddress = await converter.reserveTokens.call(0);
-        //     const reserve = await converter.reserves.call(reserveTokenAddress);
+            const tokenAddress = await factory.createdToken.call();
 
-        //     expect(await token.name.call(), 'incorrect token name').to.be.eql('tokeen');
-        //     expect(await token.symbol.call(), 'incorrect token symbol').to.be.eql('TKEN');
-        //     expect(await token.decimals.call(), 'incorrect number of decimals').to.be.bignumber.equal('18');
+            const token = await DSToken.at(tokenAddress);
+            const converter = await DynamicLiquidTokenConverter.at(await token.owner.call());
 
-        //     expect(reserveTokenAddress, 'incorrect reserve address').to.be.eql(ETH_RESERVE_ADDRESS);
-        //     expect(reserve.weight, 'incorrect reserve weight').to.be.bignumber.equal(reserveWeight);
-        //     expect(reserve.balance, 'incorrect reserve balance').to.be.bignumber.equal(reserveBalance);
-        //     expect(await converter.anchor.call(), 'incorrect anchor').to.be.eql(token.address);
-        //     expect(await converter.maxConversionFee.call(), 'incorrect maxConversionFee').to.be.bignumber.equal(MAX_CONVERSION_FEE);
-        //     expect(await converter.registry.call(), 'incorrect registry').to.be.eql(contractRegistry.address);
-        //     expect(await converter.owner.call(), 'incorrect owner').to.be.eql(factory.address);
-        //     expect(await converter.newOwner.call(), 'incorrect new owner').to.be.eql(owner);
+            const reserveTokenAddress = await converter.reserveTokens.call(0);
+            const reserve = await converter.reserves.call(reserveTokenAddress);
 
-        //     expect(await converter.marketCapThreshold.call(), 'incorrect marketCapThreshold').to.be.bignumber.equal(marketCapThreshold);
-        //     expect(await converter.minimumWeight.call(), 'incorrect minimumWeight').to.be.bignumber.equal(minimumWeight);
-        //     expect(await converter.stepWeight.call(), 'incorrect stepWeight').to.be.bignumber.equal(stepWeight);
+            expect(await token.name.call(), 'incorrect token name').to.be.eql('tokeen');
+            expect(await token.symbol.call(), 'incorrect token symbol').to.be.eql('TKEN');
+            expect(await token.decimals.call(), 'incorrect number of decimals').to.be.bignumber.equal('18');
+            expect(await token.balanceOf.call(owner), 'incorrect initial supply').to.be.bignumber.equal(initialSupply);
 
-        //     expectEvent(res, 'NewConverter', { _converter: converter.address, _owner: owner });
-        //     expectEvent(res, 'NewToken', { _token: token.address });
-        // });
+            expect(reserveTokenAddress, 'incorrect reserve address').to.be.eql(reserveToken.address);
+            expect(reserve.weight, 'incorrect reserve weight').to.be.bignumber.equal(reserveWeight);
+            expect(reserve.balance, 'incorrect reserve balance').to.be.bignumber.equal(reserveBalance);
+            expect(await converter.anchor.call(), 'incorrect anchor').to.be.eql(token.address);
+            expect(await converter.maxConversionFee.call(), 'incorrect maxConversionFee').to.be.bignumber.equal(MAX_CONVERSION_FEE);
+            expect(await converter.registry.call(), 'incorrect registry').to.be.eql(contractRegistry.address);
+            expect(await converter.owner.call(), 'incorrect owner').to.be.eql(factory.address);
+            expect(await converter.newOwner.call(), 'incorrect new owner').to.be.eql(owner);
+
+            expect(await converter.marketCapThreshold.call(), 'incorrect marketCapThreshold').to.be.bignumber.equal(marketCapThreshold);
+            expect(await converter.minimumWeight.call(), 'incorrect minimumWeight').to.be.bignumber.equal(minimumWeight);
+            expect(await converter.stepWeight.call(), 'incorrect stepWeight').to.be.bignumber.equal(stepWeight);
+
+            expectEvent(res, 'NewConverter', { _converter: converter.address, _owner: owner });
+            expectEvent(res, 'NewToken', { _token: token.address });
+        });
     });
 
     describe('createConverter', () => {
@@ -184,12 +191,15 @@ contract('DynamicLiquidTokenConverterFactory', accounts => {
 
         it('should create converter with ERC20 reserve', async () => {
             const reserveToken = await DSToken.new('Token1', 'TKN1', 18);
+            reserveToken.issue(owner, 10000);
 
             const reserveWeight = new BN('910000');
-            const reserveBalance = new BN('0');
+            const reserveBalance = new BN('10000');
             const marketCapThreshold = new BN('10000001');
             const minimumWeight = new BN('20000');
             const stepWeight = new BN('30000');
+
+            await reserveToken.approve(factory.address, reserveBalance);
 
             const res = await factory.createConverter(
                 anchor.address,
