@@ -7,7 +7,7 @@ import "../utility/ContractRegistryClient.sol";
 import "../utility/interfaces/IWhitelist.sol";
 import "../token/interfaces/IEtherToken.sol";
 import "./types/liquidity-pool-v2/interfaces/ILiquidityPoolV2Converter.sol";
-
+import "./types/liquid-token/DynamicLiquidTokenConverter.sol";
 /**
   * @dev Converter Upgrader
   *
@@ -267,6 +267,15 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
 
             // activate the new converter
             newConverter.activate(primaryReserveToken, oracleA, oracleB);
+        }
+        if(converterType == 3){ //Dynamic Liquid Token Converter
+            DynamicLiquidTokenConverter oldConverter = DynamicLiquidTokenConverter(address(_oldConverter));
+            DynamicLiquidTokenConverter newConverter = DynamicLiquidTokenConverter(address(_newConverter));
+            
+            newConverter.setMinimumWeight(oldConverter.minimumWeight());
+            newConverter.setStepWeight(oldConverter.stepWeight());
+            newConverter.setMarketCapThreshold(oldConverter.marketCapThreshold());
+            newConverter.setLastWeightAdjustmentMarketCap(oldConverter.lastWeightAdjustmentMarketCap());
         }
     }
 

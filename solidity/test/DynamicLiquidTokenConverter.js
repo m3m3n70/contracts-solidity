@@ -141,6 +141,12 @@ contract('DynamicLiquidTokenConverter', accounts => {
         await expectRevert(converter.setStepWeight(new BN(10000)), 'ERR_ACTIVE');
     });
 
+    it('should revert when attempting to set the laste weight adjustment market cap while the converter is active', async () => {
+        const converter = await initConverter(true, false);
+
+        await expectRevert(converter.setLastWeightAdjustmentMarketCap(new BN(10000)), 'ERR_ACTIVE');
+    });
+
     describe('converter upgrade by owner', () => {
         const INITIAL_RESERVE_BALANCE = new BN(10001); // threshold at 100% weight
         const ONE = new BN(1);

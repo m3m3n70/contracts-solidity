@@ -4,6 +4,7 @@ const { expectRevert, constants, BN, time } = require('@openzeppelin/test-helper
 const ConverterHelper = require('./helpers/Converter');
 
 const { ETH_RESERVE_ADDRESS, registry } = require('./helpers/Constants');
+const { builtinModules } = require('node:module');
 
 const { latest } = time;
 const { ZERO_ADDRESS } = constants;
@@ -16,6 +17,7 @@ const ConverterFactory = artifacts.require('ConverterFactory');
 const ConverterUpgrader = artifacts.require('ConverterUpgrader');
 
 const LiquidTokenConverterFactory = artifacts.require('LiquidTokenConverterFactory');
+const DynamicLiquidTokenConverterFactory = artifacts.require('DynamicLiquidTokenConverterFactory');
 const LiquidityPoolV1ConverterFactory = artifacts.require('LiquidityPoolV1ConverterFactory');
 const LiquidityPoolV2ConverterFactory = artifacts.require('LiquidityPoolV2ConverterFactory');
 const LiquidityPoolV2ConverterAnchorFactory = artifacts.require('LiquidityPoolV2ConverterAnchorFactory');
@@ -27,12 +29,17 @@ const ChainlinkPriceOracle = artifacts.require('TestChainlinkPriceOracle');
 const PriceOracle = artifacts.require('PriceOracle');
 const Whitelist = artifacts.require('Whitelist');
 
+const STEP_WEIGHT = new BN(66000);
+const MINIMUM_WEIGHT = new BN(20000);
+const MARKET_CAP_THRESHOLD = new BN('24000000000000000000000');
+const LAST_WEIGHT_ADJUSTMENT_MARKET_CAP = new BN('100000000000000000000');
 const CONVERSION_FEE = new BN(1000);
 const MAX_CONVERSION_FEE = new BN(30000);
 const RESERVE1_BALANCE = new BN(5000);
 const RESERVE2_BALANCE = new BN(8000);
 const TOKEN_TOTAL_SUPPLY = new BN(20000);
 const MIN_RETURN = new BN(1);
+
 
 const VERSIONS = [9, 10, 11, 23];
 
@@ -103,6 +110,30 @@ contract('ConverterUpgrader', accounts => {
             await reserveToken2.approve(converter.address, RESERVE2_BALANCE);
             await converter.addLiquidity(reserveToken1.address, RESERVE1_BALANCE, MIN_RETURN);
             await converter.addLiquidity(reserveToken2.address, RESERVE2_BALANCE, MIN_RETURN);
+        }
+
+        return [upgrader, converter];
+    };
+
+    const initDLTC = async (deployer, version, activate) => {
+        const anchor = await DSToken.new('Token1', 'TKN1', 0);
+        const converter = await ConverterHelper.new(3, anchor.address, contractRegistry.address, MAX_CONVERSION_FEE,
+            reserveToken1.address, 500000, version);
+        const upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS);
+
+        await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
+
+        await converter.setStepWeight(STEP_WEIGHT);
+        await converter.setMinimumWeight(MINIMUM_WEIGHT);
+        await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
+        await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
+        await converter.setConversionFee(CONVERSION_FEE);
+        await anchor.issue(deployer, TOKEN_TOTAL_SUPPLY);
+        await reserveToken1.transfer(converter.address, RESERVE1_BALANCE);
+
+        if (activate) {
+            await anchor.transferOwnership(converter.address);
+            await converter.acceptTokenOwnership();
         }
 
         return [upgrader, converter];
@@ -248,7 +279,14 @@ contract('ConverterUpgrader', accounts => {
                 state.reserveTokens[i].stakedBalance = await converter.reserveStakedBalance.call(state.reserveTokens[i].token);
             }
         }
-
+        //Fetch additional info for DynamicLiquidTokenConverter
+        const converterType = await converter.converterType.call();
+        if (BN.isBN(converterType) && converterType.eq(new BN(42))) {
+            state.stepWeight = converter.stepWeight();
+            state.minimumWeight = converter.minimumWeight();
+            state.marketCapThreshold = converter.marketCapThreshold();
+            state.lastWeightAdjustmentMarketCap = converter.lastWeightAdjustmentMarketCap();
+        }
         return state;
     };
 
