@@ -280,8 +280,7 @@ contract('ConverterUpgrader', accounts => {
             }
         }
         //Fetch additional info for DynamicLiquidTokenConverter
-        const converterType = await converter.converterType.call();
-        if (BN.isBN(converterType) && converterType.eq(new BN(42))) {
+        if (BN.isBN(converterType) && converterType.eq(new BN(3))) {
             state.stepWeight = converter.stepWeight();
             state.minimumWeight = converter.minimumWeight();
             state.marketCapThreshold = converter.marketCapThreshold();

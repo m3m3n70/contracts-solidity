@@ -34,7 +34,7 @@ contract LiquidTokenConverter is ConverterBase {
       *
       * @return see the converter types in the the main contract doc
     */
-    function converterType() public pure override returns (uint16) {
+    function converterType() public pure override virtual returns (uint16) {
         return 0;
     }
 
