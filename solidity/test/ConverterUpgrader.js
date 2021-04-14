@@ -343,7 +343,7 @@ contract('ConverterUpgrader', accounts => {
 
     const f = (a, b) => [].concat(...a.map(d => b.map(e => [].concat(d, e))));
     const cartesian = (a, b, ...c) => (b ? cartesian(f(a, b), ...c) : a);
-    const product = cartesian([initWithoutReserves, initWith1Reserve, initWith2Reserves, initLPV2, initWithEtherReserve, initWithETHReserve],
+    const product = cartesian([initWithoutReserves, initWith1Reserve, initWith2Reserves, initLPV2, initDLTC, initWithEtherReserve, initWithETHReserve],
         [...VERSIONS, null], [false, true]);
     const combinations = product.filter(([init, version, active]) => !(init === initWithoutReserves && active) &&
         !(init === initWithETHReserve && version));
