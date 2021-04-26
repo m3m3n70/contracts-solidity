@@ -4,7 +4,7 @@ const { expectRevert, constants, BN, time } = require('@openzeppelin/test-helper
 const ConverterHelper = require('./helpers/Converter');
 
 const { ETH_RESERVE_ADDRESS, registry } = require('./helpers/Constants');
-const { builtinModules } = require('node:module');
+//const { builtinModules } = require('node:module');
 
 const { latest } = time;
 const { ZERO_ADDRESS } = constants;
@@ -16,8 +16,9 @@ const ContractRegistry = artifacts.require('ContractRegistry');
 const ConverterFactory = artifacts.require('ConverterFactory');
 const ConverterUpgrader = artifacts.require('ConverterUpgrader');
 
-const LiquidTokenConverterFactory = artifacts.require('LiquidTokenConverterFactory');
+const DynamicLiquidTokenConverter = artifacts.require('DynamicLiquidTokenConverter');
 const DynamicLiquidTokenConverterFactory = artifacts.require('DynamicLiquidTokenConverterFactory');
+const LiquidTokenConverterFactory = artifacts.require('LiquidTokenConverterFactory');
 const LiquidityPoolV1ConverterFactory = artifacts.require('LiquidityPoolV1ConverterFactory');
 const LiquidityPoolV2ConverterFactory = artifacts.require('LiquidityPoolV2ConverterFactory');
 const LiquidityPoolV2ConverterAnchorFactory = artifacts.require('LiquidityPoolV2ConverterAnchorFactory');
@@ -123,10 +124,10 @@ contract('ConverterUpgrader', accounts => {
 
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
 
-        await converter.setStepWeight(STEP_WEIGHT);
-        await converter.setMinimumWeight(MINIMUM_WEIGHT);
-        await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
-        await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
+        //await converter.setStepWeight(STEP_WEIGHT);
+        //await converter.setMinimumWeight(MINIMUM_WEIGHT);
+        //await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
+        //await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
         await converter.setConversionFee(CONVERSION_FEE);
         await anchor.issue(deployer, TOKEN_TOTAL_SUPPLY);
         await reserveToken1.transfer(converter.address, RESERVE1_BALANCE);
@@ -261,8 +262,8 @@ contract('ConverterUpgrader', accounts => {
                 balance: await converter.getConnectorBalance.call(token)
             };
         }
-        // Fetch additional info for V2.
         const converterType = await converter.converterType.call();
+        // Fetch additional info for V2.
         if (BN.isBN(converterType) && converterType.eq(new BN(2))) {
             const priceOracleAddres = await converter.priceOracle.call();
             if (priceOracleAddres === ZERO_ADDRESS) {
@@ -320,6 +321,7 @@ contract('ConverterUpgrader', accounts => {
         await converterFactory.registerTypedConverterFactory((await LiquidTokenConverterFactory.new()).address);
         await converterFactory.registerTypedConverterFactory((await LiquidityPoolV1ConverterFactory.new()).address);
         await converterFactory.registerTypedConverterFactory((await LiquidityPoolV2ConverterFactory.new()).address);
+        await converterFactory.registerTypedConverterFactory((await DynamicLiquidTokenConverterFactory.new()).address);
 
         await converterFactory.registerTypedConverterAnchorFactory((await LiquidityPoolV2ConverterAnchorFactory.new()).address);
         await converterFactory.registerTypedConverterCustomFactory((await LiquidityPoolV2ConverterCustomFactory.new()).address);
@@ -342,10 +344,10 @@ contract('ConverterUpgrader', accounts => {
 
     const f = (a, b) => [].concat(...a.map(d => b.map(e => [].concat(d, e))));
     const cartesian = (a, b, ...c) => (b ? cartesian(f(a, b), ...c) : a);
-    const product = cartesian([initWithoutReserves, initWith1Reserve, initWith2Reserves, initLPV2, initDLTC, initWithEtherReserve, initWithETHReserve],
+    const product = cartesian([initDLTC], //initWithoutReserves, initWith1Reserve, initWith2Reserves, initLPV2, initWithEtherReserve, initWithETHReserve],
         [...VERSIONS, null], [false, true]);
     const combinations = product.filter(([init, version, active]) => !(init === initWithoutReserves && active) &&
-        !(init === initWithETHReserve && version));
+        !(init === initWithETHReserve && version) && !(init === initDLTC && !version));
 
     for (const [init, version, activate] of combinations) {
         describe(`${init.name}(version = ${version || 'latest'}, activate = ${activate}):`, () => {
@@ -371,6 +373,7 @@ contract('ConverterUpgrader', accounts => {
                 // Initial reserve balances are synced when the converter is being activated or during transfer to
                 // the EtherToken/ERC20 reserve, for older converters.
                 const v2 = init === initLPV2;
+                //const dltc = init === initDLTC;
                 const olderConverter = version && version < 28 && !v2;
                 const reserveBalances = [
                     activate || olderConverter ? RESERVE1_BALANCE : new BN(0),
@@ -418,6 +421,9 @@ contract('ConverterUpgrader', accounts => {
                 if (v2) {
                     newConverter = await LiquidityPoolV2Converter.at(newConverter.address);
                 }
+                /*if(dltc){
+                    newConverter = await DynamicLiquidTokenConverter.at(newConverter.address);
+                }*/
 
                 const oldConverterCurrentState = await getConverterState(oldConverter);
                 expect(oldConverterCurrentState.owner).to.be.eql(deployer);

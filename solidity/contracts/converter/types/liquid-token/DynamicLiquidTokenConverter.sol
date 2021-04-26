@@ -20,6 +20,10 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     uint256 public lastWeightAdjustmentMarketCap = 0;
 
     event ReserveTokenWeightUpdate(uint32 _prevWeight, uint32 _newWeight, uint256 _percentage, uint256 _balance);
+    event StepWeightUpdated(uint32 stepWeight);
+    event MinimumWeightUpdated(uint32 minumumWeight);
+    event MarketCapThresholdUpdated(uint256 marketCapThreshold);
+    event LastWeightAdjustmentMarketCapUpdated(uint256 lastWeightAdjustmentMarketCap);
 
     /**
       * @dev initializes a new DyamicLiquidTokenConverter instance
@@ -59,6 +63,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         inactive
     {
         marketCapThreshold = _marketCapThreshold;
+        emit MarketCapThresholdUpdated(_marketCapThreshold);
     }
 
     /**
@@ -72,7 +77,10 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         ownerOnly
         inactive
     {
+        //require(_minimumWeight > 0, "Min weight 0");
+        //_validReserveWeight(_minimumWeight);
         minimumWeight = _minimumWeight;
+        emit MinimumWeightUpdated(_minimumWeight);
     }
 
     /**
@@ -86,7 +94,10 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         ownerOnly
         inactive
     {
+        //require(_stepWeight > 0, "Step weight 0");
+        //_validReserveWeight(_stepWeight);
         stepWeight = _stepWeight;
+        emit StepWeightUpdated(_stepWeight);
     }
     /**
       * @dev updates the current lastWeightAdjustmentMarketCap
@@ -100,6 +111,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         inactive
     {
         lastWeightAdjustmentMarketCap = _lastWeightAdjustmentMarketCap;
+        emit LastWeightAdjustmentMarketCapUpdated(_lastWeightAdjustmentMarketCap);
     }
 
     /**
@@ -113,6 +125,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         validReserve(_reserveToken)
         ownerOnly
     {
+        _protected();
         uint256 currentMarketCap = getMarketCap(_reserveToken);
         require(currentMarketCap > (lastWeightAdjustmentMarketCap.add(marketCapThreshold)), "ERR_MARKET_CAP_BELOW_THRESHOLD");
 
@@ -121,20 +134,20 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         uint32 oldWeight = reserve.weight;
         require(newWeight >= minimumWeight, "ERR_INVALID_RESERVE_WEIGHT");
 
-        uint256 percentage = uint256(PPM_RESOLUTION).sub(newWeight.mul(1e6).div(reserve.weight));
+        uint256 percentage = uint256(PPM_RESOLUTION).sub(newWeight.mul(PPM_RESOLUTION).div(reserve.weight));
 
         uint32 weight = uint32(newWeight);
         reserve.weight = weight;
         reserveRatio = weight;
 
-        uint256 balance = reserveBalance(_reserveToken).mul(percentage).div(1e6);
+        uint256 balance = reserveBalance(_reserveToken).mul(percentage).div(PPM_RESOLUTION);
+
+        lastWeightAdjustmentMarketCap = currentMarketCap;
 
         if (_reserveToken == ETH_RESERVE_ADDRESS)
           msg.sender.transfer(balance);
         else
           safeTransfer(_reserveToken, msg.sender, balance);
-
-        lastWeightAdjustmentMarketCap = currentMarketCap;
 
         syncReserveBalance(_reserveToken);
 

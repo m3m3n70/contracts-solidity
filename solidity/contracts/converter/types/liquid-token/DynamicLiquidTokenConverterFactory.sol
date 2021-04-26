@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 import "./DynamicLiquidTokenConverter.sol";
 import "../../../token/interfaces/IDSToken.sol";
 import "../../../utility/TokenHolder.sol";
+import "../../interfaces/ITypedConverterFactory.sol";
 import "../../../token/DSToken.sol";
 
 /*
@@ -132,5 +133,9 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
         emit NewConverter(converter, msg.sender);
 
         return converter;
+    }
+
+    function converterType() public pure returns (uint16) {
+        return 3;
     }
 }
