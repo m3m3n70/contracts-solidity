@@ -110,17 +110,17 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
         
         // get the activation status before it's being invalidated
         bool activate = isV28OrHigherConverter(converter) && converter.isActive();
-
+        
         if (anchor.owner() == address(converter)) {
             converter.transferTokenOwnership(address(newConverter));
             newConverter.acceptAnchorOwnership();
         }
 
         handleTypeSpecificData(converter, newConverter, activate);
-
         converter.transferOwnership(prevOwner);
+        
         newConverter.transferOwnership(prevOwner);
-
+        
         emit ConverterUpgrade(address(converter), address(newConverter));
     }
 
@@ -146,19 +146,13 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       * @return the new converter  new converter contract address
     */
     function createConverter(DynamicLiquidTokenConverter _oldConverter) private returns (DynamicLiquidTokenConverter) {
-            
-            DynamicLiquidTokenConverter converter = dynamicFactory.createConverter{value: 0}(
+            //if(_oldConverter.reserveTokens(0) == ETH_RESERVE_ADDRESS){}
+            DynamicLiquidTokenConverter converter = dynamicFactory.createConverter(
                 _oldConverter.token(),
-                _oldConverter.reserveTokens(0),
-                _oldConverter.reserveWeight(_oldConverter.reserveTokens(0)),
-                _oldConverter.reserveBalance(_oldConverter.reserveTokens(0)),
                 registry,
-                _oldConverter.maxConversionFee(),
-                _oldConverter.minimumWeight(),
-                _oldConverter.stepWeight(),
-                _oldConverter.marketCapThreshold()
+                _oldConverter.maxConversionFee()
             );
-            require(false, "false");
+            
             converter.acceptOwnership();
             
             return converter;

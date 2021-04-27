@@ -235,10 +235,9 @@ abstract contract ConverterBase is IConverter, TokenHandler, TokenHolder, Contra
         validReserve(ETH_RESERVE_ADDRESS)
     {
         address converterUpgrader = addressOf(CONVERTER_UPGRADER);
-
+        
         // verify that the converter is inactive or that the owner is the upgrader contract
-        require(!isActive(), "ERR_ACCESS_DENIED_ACTIVE");
-        require(owner == converterUpgrader, "ERR_ACCESS_DENIED_OWNER");
+        require(!isActive() || owner == converterUpgrader, "ERR_ACCESS_DENIED_ACTIVE");
         _to.transfer(address(this).balance);
 
         // sync the ETH reserve balance
@@ -344,11 +343,9 @@ abstract contract ConverterBase is IConverter, TokenHandler, TokenHolder, Contra
         // if the token is not a reserve token, allow withdrawal
         // otherwise verify that the converter is inactive or that the owner is the upgrader contract
         
-        require(!reserves[_token].isSet, "ERR_ACCESS_DENIED_TOKEN");
-        require(!isActive(), "ERR_ACCESS_DENIED_TOKEN_ACTIVE");
-        require(owner == converterUpgrader, "ERR_ACCESS_DENIED_TOKEN_OWNER");
+        require(!reserves[_token].isSet || !isActive() || owner == converterUpgrader, "ERR_ACCESS_DENIED_TOKEN");
         super.withdrawTokens(_token, _to, _amount);
-
+        
         // if the token is a reserve token, sync the reserve balance
         if (reserves[_token].isSet)
             syncReserveBalance(_token);

@@ -121,10 +121,10 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
         converter.setMinimumWeight(_minimumWeight);
         converter.setStepWeight(_stepWeight);
         converter.setMarketCapThreshold(_marketCapThreshold);
-
+        
         if (_anchor.owner() != address(this))
           _anchor.acceptOwnership();
-
+        
         _anchor.transferOwnership(address(converter));
         converter.acceptAnchorOwnership();
 
@@ -132,6 +132,12 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
 
         emit NewConverter(converter, msg.sender);
 
+        return converter;
+    }
+
+    function createConverter(IConverterAnchor _anchor, IContractRegistry _registry, uint32 _maxConversionFee) external returns (DynamicLiquidTokenConverter) {
+        DynamicLiquidTokenConverter converter = new DynamicLiquidTokenConverter(IDSToken(address(_anchor)), _registry, _maxConversionFee);
+        converter.transferOwnership(msg.sender);
         return converter;
     }
 

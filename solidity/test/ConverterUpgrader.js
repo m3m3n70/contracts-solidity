@@ -282,10 +282,10 @@ contract('ConverterUpgrader', accounts => {
         }
         //Fetch additional info for DynamicLiquidTokenConverter
         if (BN.isBN(converterType) && converterType.eq(new BN(3))) {
-            state.stepWeight = converter.stepWeight();
-            state.minimumWeight = converter.minimumWeight();
-            state.marketCapThreshold = converter.marketCapThreshold();
-            state.lastWeightAdjustmentMarketCap = converter.lastWeightAdjustmentMarketCap();
+            state.stepWeight = await converter.stepWeight();
+            state.minimumWeight = await converter.minimumWeight();
+            state.marketCapThreshold = await converter.marketCapThreshold();
+            state.lastWeightAdjustmentMarketCap = await converter.lastWeightAdjustmentMarketCap();
         }
         return state;
     };
@@ -349,7 +349,7 @@ contract('ConverterUpgrader', accounts => {
     const product = cartesian([initDLTC], //initWithoutReserves, initWith1Reserve, initWith2Reserves, initLPV2, initWithEtherReserve, initWithETHReserve],
         [...VERSIONS, null], [false, true]);
     const combinations = product.filter(([init, version, active]) => !(init === initWithoutReserves && active) &&
-        !(init === initWithETHReserve && version) && !(init === initDLTC && version) );
+        !(init === initWithETHReserve && version));
 
     for (const [init, version, activate] of combinations) {
         describe(`${init.name}(version = ${version || 'latest'}, activate = ${activate}):`, () => {
@@ -428,6 +428,7 @@ contract('ConverterUpgrader', accounts => {
                 }
 
                 const oldConverterCurrentState = await getConverterState(oldConverter);
+                
                 expect(oldConverterCurrentState.owner).to.be.eql(deployer);
                 expect(oldConverterCurrentState.newOwner).to.be.eql(ZERO_ADDRESS);
                 expect(oldConverterCurrentState.token).to.be.eql(oldConverterInitialState.token);
@@ -459,7 +460,12 @@ contract('ConverterUpgrader', accounts => {
                 expect(newConverterCurrentState.conversionFee).to.be.bignumber.equal(CONVERSION_FEE);
                 expect(newConverterCurrentState.maxConversionFee).to.be.bignumber.equal(MAX_CONVERSION_FEE);
                 expect(newConverterCurrentState.reserveTokenCount).to.be.bignumber.equal(oldConverterInitialState.reserveTokenCount);
-
+                if(dltc){
+                    expect(newConverterCurrentState.marketCapThreshold).to.be.bignumber.equal(MARKET_CAP_THRESHOLD);
+                    expect(newConverterCurrentState.stepWeight).to.be.bignumber.equal(STEP_WEIGHT);
+                    expect(newConverterCurrentState.minimumWeight).to.be.bignumber.equal(MINIMUM_WEIGHT);
+                    expect(newConverterCurrentState.lastWeightAdjustmentMarketCap).to.be.bignumber.equal(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
+                }
                 for (let i = 0; i < newConverterCurrentState.reserveTokenCount.toNumber(); ++i) {
                     expect(newConverterCurrentState.reserveTokens[i].balance).to.be.bignumber.equal(upgradedReserveBalances[i]);
                     expect(newConverterCurrentState.reserveTokens[i].token).to.be.eql(upgradedReserveTokens[i]);

@@ -42,6 +42,13 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     {
     }
 
+    modifier ifActiveOnlyUpgrader(){
+      if(isActive()){
+        require(owner == addressOf(CONVERTER_UPGRADER), "ERR_ACTIVE_NOTUPGRADER");
+      }
+      _;
+    }
+
     /**
       * @dev returns the converter type
       *
@@ -60,7 +67,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setMarketCapThreshold(uint256 _marketCapThreshold)
         public
         ownerOnly
-        inactive
+        ifActiveOnlyUpgrader
     {
         marketCapThreshold = _marketCapThreshold;
         emit MarketCapThresholdUpdated(_marketCapThreshold);
@@ -75,7 +82,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setMinimumWeight(uint32 _minimumWeight)
         public
         ownerOnly
-        inactive
+        ifActiveOnlyUpgrader
     {
         //require(_minimumWeight > 0, "Min weight 0");
         //_validReserveWeight(_minimumWeight);
@@ -92,7 +99,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setStepWeight(uint32 _stepWeight)
         public
         ownerOnly
-        inactive
+        ifActiveOnlyUpgrader
     {
         //require(_stepWeight > 0, "Step weight 0");
         //_validReserveWeight(_stepWeight);
@@ -108,7 +115,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setLastWeightAdjustmentMarketCap(uint256 _lastWeightAdjustmentMarketCap)
         public
         ownerOnly
-        inactive
+        ifActiveOnlyUpgrader
     {
         lastWeightAdjustmentMarketCap = _lastWeightAdjustmentMarketCap;
         emit LastWeightAdjustmentMarketCapUpdated(_lastWeightAdjustmentMarketCap);
