@@ -37,7 +37,7 @@ contract ContractRegistryClient is Owned, Utils {
 
     // error message binary size optimization
     function _only(bytes32 _contractName) internal view {
-        require(msg.sender == addressOf(_contractName), "ERR_ACCESS_DENIED");
+        require(msg.sender == addressOf(_contractName), "ERR_ACCESS_DENIED_regcli");
     }
 
     /**
@@ -55,7 +55,7 @@ contract ContractRegistryClient is Owned, Utils {
      */
     function updateRegistry() public {
         // verify that this function is permitted
-        require(msg.sender == owner || !onlyOwnerCanUpdateRegistry, "ERR_ACCESS_DENIED");
+        require(msg.sender == owner || !onlyOwnerCanUpdateRegistry, "ERR_ACCESS_DENIED_regup");
 
         // get the new contract-registry
         IContractRegistry newRegistry = IContractRegistry(addressOf(CONTRACT_REGISTRY));

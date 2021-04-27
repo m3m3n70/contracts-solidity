@@ -119,18 +119,18 @@ contract('ConverterUpgrader', accounts => {
     const initDLTC = async (deployer, version, activate) => {
         const anchor = await DSToken.new('Token1', 'TKN1', 0);
         const converter = await ConverterHelper.new(3, anchor.address, contractRegistry.address, MAX_CONVERSION_FEE,
-            reserveToken1.address, 500000, version);
-        const upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS);
+            reserveToken1.address, 500000);
+        const upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS, dynamicConverterFactory.address);
 
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
-
-        //await converter.setStepWeight(STEP_WEIGHT);
-        //await converter.setMinimumWeight(MINIMUM_WEIGHT);
-        //await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
-        //await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
-        await converter.setConversionFee(CONVERSION_FEE);
         await anchor.issue(deployer, TOKEN_TOTAL_SUPPLY);
         await reserveToken1.transfer(converter.address, RESERVE1_BALANCE);
+        
+        await converter.setStepWeight(STEP_WEIGHT);
+        await converter.setMinimumWeight(MINIMUM_WEIGHT);
+        await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
+        await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
+        await converter.setConversionFee(CONVERSION_FEE);
 
         if (activate) {
             await anchor.transferOwnership(converter.address);
@@ -300,6 +300,7 @@ contract('ConverterUpgrader', accounts => {
 
     let contractRegistry;
     let converterFactory;
+    let dynamicConverterFactory;
     let chainlinkPriceOracleA;
     let chainlinkPriceOracleB;
     const deployer = accounts[0];
@@ -316,6 +317,7 @@ contract('ConverterUpgrader', accounts => {
         await contractRegistry.registerAddress(registry.BANCOR_FORMULA, bancorFormula.address);
 
         converterFactory = await ConverterFactory.new();
+        dynamicConverterFactory = await DynamicLiquidTokenConverterFactory.new();
         await contractRegistry.registerAddress(registry.CONVERTER_FACTORY, converterFactory.address);
 
         await converterFactory.registerTypedConverterFactory((await LiquidTokenConverterFactory.new()).address);
@@ -347,7 +349,7 @@ contract('ConverterUpgrader', accounts => {
     const product = cartesian([initDLTC], //initWithoutReserves, initWith1Reserve, initWith2Reserves, initLPV2, initWithEtherReserve, initWithETHReserve],
         [...VERSIONS, null], [false, true]);
     const combinations = product.filter(([init, version, active]) => !(init === initWithoutReserves && active) &&
-        !(init === initWithETHReserve && version) && !(init === initDLTC && !version));
+        !(init === initWithETHReserve && version) && !(init === initDLTC && version) );
 
     for (const [init, version, activate] of combinations) {
         describe(`${init.name}(version = ${version || 'latest'}, activate = ${activate}):`, () => {
@@ -373,8 +375,8 @@ contract('ConverterUpgrader', accounts => {
                 // Initial reserve balances are synced when the converter is being activated or during transfer to
                 // the EtherToken/ERC20 reserve, for older converters.
                 const v2 = init === initLPV2;
-                //const dltc = init === initDLTC;
-                const olderConverter = version && version < 28 && !v2;
+                const dltc = init === initDLTC;
+                const olderConverter = version && version < 28 && !v2 && !dltc;
                 const reserveBalances = [
                     activate || olderConverter ? RESERVE1_BALANCE : new BN(0),
                     activate || olderConverter ? RESERVE2_BALANCE : new BN(0)
@@ -421,9 +423,9 @@ contract('ConverterUpgrader', accounts => {
                 if (v2) {
                     newConverter = await LiquidityPoolV2Converter.at(newConverter.address);
                 }
-                /*if(dltc){
+                if(dltc){
                     newConverter = await DynamicLiquidTokenConverter.at(newConverter.address);
-                }*/
+                }
 
                 const oldConverterCurrentState = await getConverterState(oldConverter);
                 expect(oldConverterCurrentState.owner).to.be.eql(deployer);

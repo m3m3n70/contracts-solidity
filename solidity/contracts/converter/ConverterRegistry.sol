@@ -154,7 +154,7 @@ contract ConverterRegistry is IConverterRegistry, ContractRegistryClient, TokenH
       * @param _converter converter
     */
     function removeConverter(IConverter _converter) public {
-        require(msg.sender == owner || !isConverterValid(_converter), "ERR_ACCESS_DENIED");
+        require(msg.sender == owner || !isConverterValid(_converter), "ERR_ACCESS_DENIED_REG");
         removeConverterInternal(_converter);
     }
 

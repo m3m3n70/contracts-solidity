@@ -107,7 +107,7 @@ contract DynamicLiquidTokenConverterFactory is TokenHolder {
       returns (DynamicLiquidTokenConverter)
     {
         DynamicLiquidTokenConverter converter = new DynamicLiquidTokenConverter(IDSToken(address(_anchor)), _registry, _maxConversionFee);
-
+        
         require(_reserveToken == ETH_RESERVE_ADDRESS ? msg.value == _reserveBalance : msg.value == 0, "ERR_ETH_AMOUNT_MISMATCH");
 
         converter.addReserve(_reserveToken, _reserveWeight);

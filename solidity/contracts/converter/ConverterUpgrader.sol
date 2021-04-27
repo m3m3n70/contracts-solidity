@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.6.12;
-import "./interfaces/IConverter.sol";
+//import "./interfaces/IConverter.sol";
 import "./interfaces/IConverterUpgrader.sol";
 import "./interfaces/IConverterFactory.sol";
 import "../utility/ContractRegistryClient.sol";
 import "../utility/interfaces/IWhitelist.sol";
 import "../token/interfaces/IEtherToken.sol";
 import "./types/liquidity-pool-v2/interfaces/ILiquidityPoolV2Converter.sol";
+import "./types/liquid-token/interfaces/IDynamicLiquidTokenConverter.sol";
+import "./types/liquid-token/DynamicLiquidTokenConverterFactory.sol";
 import "./types/liquid-token/DynamicLiquidTokenConverter.sol";
 /**
   * @dev Converter Upgrader
@@ -26,7 +28,7 @@ import "./types/liquid-token/DynamicLiquidTokenConverter.sol";
 contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
     IERC20Token private constant ETH_RESERVE_ADDRESS = IERC20Token(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     IEtherToken public etherToken;
-
+    DynamicLiquidTokenConverterFactory public dynamicFactory;
     /**
       * @dev triggered when the contract accept a converter ownership
       *
@@ -48,8 +50,15 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       *
       * @param _registry    address of a contract registry contract
     */
-    constructor(IContractRegistry _registry, IEtherToken _etherToken) ContractRegistryClient(_registry) public {
+    constructor(
+        IContractRegistry _registry, 
+        IEtherToken _etherToken, 
+        DynamicLiquidTokenConverterFactory _dynamicFactory) 
+        public
+        ContractRegistryClient(_registry) 
+    {
         etherToken = _etherToken;
+        dynamicFactory = _dynamicFactory;
     }
 
     /**
@@ -62,7 +71,7 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       * @param _version old converter version
     */
     function upgrade(bytes32 _version) public override {
-        upgradeOld(IConverter(msg.sender), _version);
+        upgradeOld(DynamicLiquidTokenConverter(msg.sender), _version);
     }
 
     /**
@@ -75,7 +84,7 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       * @param _version old converter version
     */
     function upgrade(uint16 _version) public override {
-        upgradeOld(IConverter(msg.sender), bytes32(uint256(_version)));
+        upgradeOld(DynamicLiquidTokenConverter(msg.sender), bytes32(uint256(_version)));
     }
 
     /**
@@ -87,17 +96,18 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       * @param _converter   old converter contract address
       * @param _version     old converter version
     */
-    function upgradeOld(IConverter _converter, bytes32 _version) public {
+    function upgradeOld(DynamicLiquidTokenConverter _converter, bytes32 _version) public {
         _version;
-        IConverter converter = IConverter(_converter);
+        DynamicLiquidTokenConverter converter = DynamicLiquidTokenConverter(_converter);
         address prevOwner = converter.owner();
         acceptConverterOwnership(converter);
-        IConverter newConverter = createConverter(converter);
+        DynamicLiquidTokenConverter newConverter = createConverter(converter);
+        
         copyReserves(converter, newConverter);
         copyConversionFee(converter, newConverter);
         transferReserveBalances(converter, newConverter);
         IConverterAnchor anchor = converter.token();
-
+        
         // get the activation status before it's being invalidated
         bool activate = isV28OrHigherConverter(converter) && converter.isActive();
 
@@ -135,25 +145,30 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       *
       * @return the new converter  new converter contract address
     */
-    function createConverter(IConverter _oldConverter) private returns (IConverter) {
-        IConverterAnchor anchor = _oldConverter.token();
-        uint32 maxConversionFee = _oldConverter.maxConversionFee();
-        uint16 reserveTokenCount = _oldConverter.connectorTokenCount();
+    function createConverter(DynamicLiquidTokenConverter _oldConverter) private returns (DynamicLiquidTokenConverter) {
+            
+            DynamicLiquidTokenConverter converter = dynamicFactory.createConverter{value: 0}(
+                _oldConverter.token(),
+                _oldConverter.reserveTokens(0),
+                _oldConverter.reserveWeight(_oldConverter.reserveTokens(0)),
+                _oldConverter.reserveBalance(_oldConverter.reserveTokens(0)),
+                registry,
+                _oldConverter.maxConversionFee(),
+                _oldConverter.minimumWeight(),
+                _oldConverter.stepWeight(),
+                _oldConverter.marketCapThreshold()
+            );
+            require(false, "false");
+            converter.acceptOwnership();
+            
+            return converter;
+        
 
-        // determine new converter type
-        uint16 newType = 0;
-        // new converter - get the type from the converter itself
-        if (isV28OrHigherConverter(_oldConverter))
-            newType = _oldConverter.converterType();
-        // old converter - if it has 1 reserve token, the type is a liquid token, otherwise the type liquidity pool
-        else if (reserveTokenCount > 1)
-            newType = 1;
+        //IConverterFactory converterFactory = IConverterFactory(addressOf(CONVERTER_FACTORY));
+        //IConverter converter = converterFactory.createConverter(newType, anchor, registry, maxConversionFee);
 
-        IConverterFactory converterFactory = IConverterFactory(addressOf(CONVERTER_FACTORY));
-        IConverter converter = converterFactory.createConverter(newType, anchor, registry, maxConversionFee);
-
-        converter.acceptOwnership();
-        return converter;
+        //converter.acceptOwnership();
+        //return converter;
     }
 
     /**
@@ -269,8 +284,8 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
             newConverter.activate(primaryReserveToken, oracleA, oracleB);
         }
         if(converterType == 3){ //Dynamic Liquid Token Converter
-            DynamicLiquidTokenConverter oldConverter = DynamicLiquidTokenConverter(address(_oldConverter));
-            DynamicLiquidTokenConverter newConverter = DynamicLiquidTokenConverter(address(_newConverter));
+            IDynamicLiquidTokenConverter oldConverter = IDynamicLiquidTokenConverter(address(_oldConverter));
+            IDynamicLiquidTokenConverter newConverter = IDynamicLiquidTokenConverter(address(_newConverter));
             
             newConverter.setMinimumWeight(oldConverter.minimumWeight());
             newConverter.setStepWeight(oldConverter.stepWeight());

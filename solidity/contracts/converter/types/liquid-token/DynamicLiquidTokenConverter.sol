@@ -26,7 +26,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     event LastWeightAdjustmentMarketCapUpdated(uint256 lastWeightAdjustmentMarketCap);
 
     /**
-      * @dev initializes a new DyamicLiquidTokenConverter instance
+      * @dev initializes a new DynamicLiquidTokenConverter instance
       *
       * @param  _token              liquid token governed by the converter
       * @param  _registry           address of a contract registry contract
@@ -160,6 +160,6 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         returns(uint256)
     {
         Reserve storage reserve = reserves[_reserveToken];
-        return reserveBalance(_reserveToken).mul(1e6).div(reserve.weight);
+        return reserveBalance(_reserveToken).mul(PPM_RESOLUTION).div(reserve.weight);
     }
 }

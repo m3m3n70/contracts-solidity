@@ -183,7 +183,7 @@ contract BancorX is IBancorX, TokenHandler, TokenHolder, ContractRegistryClient 
 
     // error message binary size optimization
     function _reporterOnly() internal view {
-        require(reporters[msg.sender], "ERR_ACCESS_DENIED");
+        require(reporters[msg.sender], "ERR_ACCESS_DENIED_X");
     }
 
     // allows execution only when x transfers are enabled

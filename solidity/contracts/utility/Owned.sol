@@ -32,7 +32,7 @@ contract Owned is IOwned {
 
     // error message binary size optimization
     function _ownerOnly() internal view {
-        require(msg.sender == owner, "ERR_ACCESS_DENIED");
+        require(msg.sender == owner, "ERR_ACCESS_DENIED_owned");
     }
 
     /**
@@ -51,7 +51,7 @@ contract Owned is IOwned {
       * @dev used by a new owner to accept an ownership transfer
     */
     function acceptOwnership() override public {
-        require(msg.sender == newOwner, "ERR_ACCESS_DENIED");
+        require(msg.sender == newOwner, "ERR_ACCESS_DENIED_newowner");
         emit OwnerUpdate(owner, newOwner);
         owner = newOwner;
         newOwner = address(0);
