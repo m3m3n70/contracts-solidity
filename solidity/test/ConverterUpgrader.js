@@ -18,6 +18,7 @@ const ConverterUpgrader = artifacts.require('ConverterUpgrader');
 
 const DynamicLiquidTokenConverter = artifacts.require('DynamicLiquidTokenConverter');
 const DynamicLiquidTokenConverterFactory = artifacts.require('DynamicLiquidTokenConverterFactory');
+const DynamicContractRegistry = artifacts.require('DynamicContractRegistry');
 const LiquidTokenConverterFactory = artifacts.require('LiquidTokenConverterFactory');
 const LiquidityPoolV1ConverterFactory = artifacts.require('LiquidityPoolV1ConverterFactory');
 const LiquidityPoolV2ConverterFactory = artifacts.require('LiquidityPoolV2ConverterFactory');
@@ -118,9 +119,9 @@ contract('ConverterUpgrader', accounts => {
 
     const initDLTC = async (deployer, version, activate) => {
         const anchor = await DSToken.new('Token1', 'TKN1', 0);
-        const converter = await ConverterHelper.new(3, anchor.address, contractRegistry.address, MAX_CONVERSION_FEE,
+        const converter = await ConverterHelper.new(3, anchor.address, dynamicContractRegistry.address, MAX_CONVERSION_FEE,
             reserveToken1.address, 500000);
-        const upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS, dynamicConverterFactory.address);
+        const upgrader = await ConverterUpgrader.new(dynamicContractRegistry.address, ZERO_ADDRESS);
 
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
         await anchor.issue(deployer, TOKEN_TOTAL_SUPPLY);
@@ -156,26 +157,22 @@ contract('ConverterUpgrader', accounts => {
 
         return [upgrader, converter];
     };
-
     const initWithEtherReserve = async (deployer, version, activate) => {
+        if (version) {
+            throw new Error(`Converter version ${version} does not support ETH-reserve`);
+        }
+
         const anchor = await DSToken.new('Token1', 'TKN1', 0);
         const converter = await ConverterHelper.new(1, anchor.address, contractRegistry.address, MAX_CONVERSION_FEE,
-            etherToken.address, 500000, version);
-        const upgrader = await ConverterUpgrader.new(contractRegistry.address, etherToken.address);
+            reserveToken1.address, 500000);
+        const upgrader = await ConverterUpgrader.new(contractRegistry.address, ZERO_ADDRESS);
 
         await contractRegistry.registerAddress(registry.CONVERTER_UPGRADER, upgrader.address);
-        if (version) {
-            await converter.addConnector(reserveToken2.address, 500000, false);
-        }
-        else {
-            await converter.addReserve(reserveToken2.address, 500000);
-        }
-
+        await converter.addReserve(ETH_RESERVE_ADDRESS, 500000);
         await converter.setConversionFee(CONVERSION_FEE);
         await anchor.issue(deployer, TOKEN_TOTAL_SUPPLY);
-        await etherToken.deposit({ value: RESERVE1_BALANCE });
-        await etherToken.transfer(converter.address, RESERVE1_BALANCE);
-        await reserveToken2.transfer(converter.address, RESERVE2_BALANCE);
+        await reserveToken1.transfer(converter.address, RESERVE1_BALANCE);
+        await converter.send(RESERVE2_BALANCE, { from: deployer });
 
         if (activate) {
             await anchor.transferOwnership(converter.address);
@@ -184,7 +181,6 @@ contract('ConverterUpgrader', accounts => {
 
         return [upgrader, converter];
     };
-
     const initWithETHReserve = async (deployer, version, activate) => {
         if (version) {
             throw new Error(`Converter version ${version} does not support ETH-reserve`);
@@ -311,6 +307,8 @@ contract('ConverterUpgrader', accounts => {
     before(async () => {
         // The following contracts are unaffected by the underlying tests, this can be shared.
         contractRegistry = await ContractRegistry.new();
+        dynamicContractRegistry = await DynamicContractRegistry.new();
+        await dynamicContractRegistry.setContractRegistry(contractRegistry.address);
 
         const bancorFormula = await BancorFormula.new();
         await bancorFormula.init();
@@ -319,11 +317,13 @@ contract('ConverterUpgrader', accounts => {
         converterFactory = await ConverterFactory.new();
         dynamicConverterFactory = await DynamicLiquidTokenConverterFactory.new();
         await contractRegistry.registerAddress(registry.CONVERTER_FACTORY, converterFactory.address);
-
+        await dynamicContractRegistry.registerAddress(registry.CONVERTER_FACTORY, dynamicConverterFactory.address);
+        
         await converterFactory.registerTypedConverterFactory((await LiquidTokenConverterFactory.new()).address);
         await converterFactory.registerTypedConverterFactory((await LiquidityPoolV1ConverterFactory.new()).address);
         await converterFactory.registerTypedConverterFactory((await LiquidityPoolV2ConverterFactory.new()).address);
         await converterFactory.registerTypedConverterFactory((await DynamicLiquidTokenConverterFactory.new()).address);
+        //await dynamicContractRegistry.registerTypedConverterFactory((await DynamicLiquidTokenConverterFactory.new()).address);
 
         await converterFactory.registerTypedConverterAnchorFactory((await LiquidityPoolV2ConverterAnchorFactory.new()).address);
         await converterFactory.registerTypedConverterCustomFactory((await LiquidityPoolV2ConverterCustomFactory.new()).address);

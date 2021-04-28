@@ -28,7 +28,6 @@ import "./types/liquid-token/DynamicLiquidTokenConverter.sol";
 contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
     IERC20Token private constant ETH_RESERVE_ADDRESS = IERC20Token(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     IEtherToken public etherToken;
-    DynamicLiquidTokenConverterFactory public dynamicFactory;
     /**
       * @dev triggered when the contract accept a converter ownership
       *
@@ -52,13 +51,11 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
     */
     constructor(
         IContractRegistry _registry, 
-        IEtherToken _etherToken, 
-        DynamicLiquidTokenConverterFactory _dynamicFactory) 
+        IEtherToken _etherToken) 
         public
         ContractRegistryClient(_registry) 
     {
         etherToken = _etherToken;
-        dynamicFactory = _dynamicFactory;
     }
 
     /**
@@ -146,17 +143,16 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
       * @return the new converter  new converter contract address
     */
     function createConverter(DynamicLiquidTokenConverter _oldConverter) private returns (DynamicLiquidTokenConverter) {
-            //if(_oldConverter.reserveTokens(0) == ETH_RESERVE_ADDRESS){}
-            DynamicLiquidTokenConverter converter = dynamicFactory.createConverter(
-                _oldConverter.token(),
-                registry,
-                _oldConverter.maxConversionFee()
-            );
-            
-            converter.acceptOwnership();
-            
-            return converter;
+        //if(_oldConverter.reserveTokens(0) == ETH_RESERVE_ADDRESS){}        
+        DynamicLiquidTokenConverter converter = 
+        DynamicLiquidTokenConverterFactory(addressOf(CONVERTER_FACTORY)).createConverter(
+            _oldConverter.token(),
+            registry,
+            _oldConverter.maxConversionFee()
+        );
         
+        converter.acceptOwnership();
+        return converter;        
 
         //IConverterFactory converterFactory = IConverterFactory(addressOf(CONVERTER_FACTORY));
         //IConverter converter = converterFactory.createConverter(newType, anchor, registry, maxConversionFee);

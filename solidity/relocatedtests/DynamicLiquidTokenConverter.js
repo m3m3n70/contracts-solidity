@@ -10,6 +10,7 @@ const LiquidTokenConverterFactory = artifacts.require('LiquidTokenConverterFacto
 const DSToken = artifacts.require('DSToken');
 const BancorFormula = artifacts.require('BancorFormula');
 const ContractRegistry = artifacts.require('ContractRegistry');
+const DynamicContractRegistry = artifacts.require('DynamicContractRegistry');
 const ERC20Token = artifacts.require('ERC20Token');
 const ConverterFactory = artifacts.require('ConverterFactory');
 const ConverterUpgrader = artifacts.require('ConverterUpgrader');

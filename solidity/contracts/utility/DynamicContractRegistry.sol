@@ -23,6 +23,7 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
 
     mapping (bytes32 => RegistryItem) private items;    // name -> RegistryItem mapping
     string[] public contractNames;                      // list of all registered contract names
+    IContractRegistry public contractRegistry;
 
     /**
       * @dev triggered when an address pointed to by a contract name is modified
@@ -49,7 +50,11 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
       * @return contract address
     */
     function addressOf(bytes32 _contractName) public view override returns (address) {
-        return items[_contractName].contractAddress;
+        if(items[_contractName].contractAddress != address(0)){
+          return items[_contractName].contractAddress;
+        }else{
+          return contractRegistry.addressOf(_contractName);
+        }
     }
 
     /**
@@ -84,6 +89,10 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
 
         // dispatch the address update event
         emit AddressUpdate(_contractName, _contractAddress);
+    }
+
+    function setContractRegistry(IContractRegistry _contractRegistry) public ownerOnly{
+        contractRegistry = IContractRegistry(_contractRegistry);
     }
 
     /**
@@ -147,12 +156,5 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
             result := mload(add(_string,32))
         }
         return result;
-    }
-
-    /**
-      * @dev deprecated, backward compatibility
-    */
-    function getAddress(bytes32 _contractName) public view returns (address) {
-        return addressOf(_contractName);
     }
 }

@@ -3,6 +3,7 @@ module.exports = {
         CONTRACT_REGISTRY: web3.utils.asciiToHex('ContractRegistry'),
         BANCOR_NETWORK: web3.utils.asciiToHex('BancorNetwork'),
         BANCOR_FORMULA: web3.utils.asciiToHex('BancorFormula'),
+        DYNAMIC_CONVERTER_FACTORY: web3.utils.asciiToHex('DynamicConverterFactory'),
         CONVERTER_FACTORY: web3.utils.asciiToHex('ConverterFactory'),
         CONVERSION_PATH_FINDER: web3.utils.asciiToHex('ConversionPathFinder'),
         CONVERTER_UPGRADER: web3.utils.asciiToHex('BancorConverterUpgrader'),
