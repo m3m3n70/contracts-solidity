@@ -38,9 +38,14 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
       *
       * @return number of items
     */
-    function itemCount() public view returns (uint256) {
+    function itemCount() public view override returns (uint256) {
+        return contractRegistry.itemCount();
+    }
+    ///returns the item count for the dynamic registry, preserving the bancor registry count
+    function dcrItemCount() public view returns (uint256) {
         return contractNames.length;
     }
+    
 
     /**
       * @dev returns the address associated with the given contract name

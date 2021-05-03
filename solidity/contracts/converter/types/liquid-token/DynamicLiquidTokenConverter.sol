@@ -42,13 +42,6 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     {
     }
 
-    modifier ifActiveOnlyUpgrader(){
-      if(isActive()){
-        require(owner == addressOf(CONVERTER_UPGRADER), "ERR_ACTIVE_NOTUPGRADER");
-      }
-      _;
-    }
-
     /**
       * @dev returns the converter type
       *
@@ -56,6 +49,14 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     */
     function converterType() public pure override returns (uint16) {
         return 3;
+    }
+    /** 
+    * @dev returns true if the converter is active, false otherwise
+    *
+    * @return true if the converter is active, false otherwise
+    */
+    function isActive() public view override returns (bool) {
+      return super.isActive() && stepWeight != 0 && minimumWeight != 0 && marketCapThreshold != 0;
     }
 
     /**
@@ -67,7 +68,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setMarketCapThreshold(uint256 _marketCapThreshold)
         public
         ownerOnly
-        ifActiveOnlyUpgrader
+        inactive
     {
         marketCapThreshold = _marketCapThreshold;
         emit MarketCapThresholdUpdated(_marketCapThreshold);
@@ -82,7 +83,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setMinimumWeight(uint32 _minimumWeight)
         public
         ownerOnly
-        ifActiveOnlyUpgrader
+        inactive
     {
         //require(_minimumWeight > 0, "Min weight 0");
         //_validReserveWeight(_minimumWeight);
@@ -99,7 +100,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setStepWeight(uint32 _stepWeight)
         public
         ownerOnly
-        ifActiveOnlyUpgrader
+        inactive
     {
         //require(_stepWeight > 0, "Step weight 0");
         //_validReserveWeight(_stepWeight);
@@ -115,7 +116,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
     function setLastWeightAdjustmentMarketCap(uint256 _lastWeightAdjustmentMarketCap)
         public
         ownerOnly
-        ifActiveOnlyUpgrader
+        inactive
     {
         lastWeightAdjustmentMarketCap = _lastWeightAdjustmentMarketCap;
         emit LastWeightAdjustmentMarketCapUpdated(_lastWeightAdjustmentMarketCap);
@@ -131,8 +132,8 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         public
         validReserve(_reserveToken)
         ownerOnly
+        protected
     {
-        _protected();
         uint256 currentMarketCap = getMarketCap(_reserveToken);
         require(currentMarketCap > (lastWeightAdjustmentMarketCap.add(marketCapThreshold)), "ERR_MARKET_CAP_BELOW_THRESHOLD");
 
