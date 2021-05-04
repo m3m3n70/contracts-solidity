@@ -127,15 +127,16 @@ contract('ConverterUpgrader', accounts => {
         await anchor.issue(deployer, TOKEN_TOTAL_SUPPLY);
         await reserveToken1.transfer(converter.address, RESERVE1_BALANCE);
         
-        await converter.setStepWeight(STEP_WEIGHT);
-        await converter.setMinimumWeight(MINIMUM_WEIGHT);
-        await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
-        await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
         await converter.setConversionFee(CONVERSION_FEE);
 
         if (activate) {
             await anchor.transferOwnership(converter.address);
             await converter.acceptTokenOwnership();
+
+            await converter.setLastWeightAdjustmentMarketCap(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
+            await converter.setStepWeight(STEP_WEIGHT);
+            await converter.setMinimumWeight(MINIMUM_WEIGHT);
+            await converter.setMarketCapThreshold(MARKET_CAP_THRESHOLD);
         }
 
         return [upgrader, converter];
@@ -278,10 +279,10 @@ contract('ConverterUpgrader', accounts => {
         }
         //Fetch additional info for DynamicLiquidTokenConverter
         if (BN.isBN(converterType) && converterType.eq(new BN(3))) {
+            state.lastWeightAdjustmentMarketCap = await converter.lastWeightAdjustmentMarketCap();
             state.stepWeight = await converter.stepWeight();
             state.minimumWeight = await converter.minimumWeight();
             state.marketCapThreshold = await converter.marketCapThreshold();
-            state.lastWeightAdjustmentMarketCap = await converter.lastWeightAdjustmentMarketCap();
         }
         return state;
     };
@@ -461,10 +462,10 @@ contract('ConverterUpgrader', accounts => {
                 expect(newConverterCurrentState.maxConversionFee).to.be.bignumber.equal(MAX_CONVERSION_FEE);
                 expect(newConverterCurrentState.reserveTokenCount).to.be.bignumber.equal(oldConverterInitialState.reserveTokenCount);
                 if(dltc){
-                    expect(newConverterCurrentState.marketCapThreshold).to.be.bignumber.equal(MARKET_CAP_THRESHOLD);
-                    expect(newConverterCurrentState.stepWeight).to.be.bignumber.equal(STEP_WEIGHT);
-                    expect(newConverterCurrentState.minimumWeight).to.be.bignumber.equal(MINIMUM_WEIGHT);
-                    expect(newConverterCurrentState.lastWeightAdjustmentMarketCap).to.be.bignumber.equal(LAST_WEIGHT_ADJUSTMENT_MARKET_CAP);
+                    expect(newConverterCurrentState.marketCapThreshold).to.be.bignumber.equal(oldConverterCurrentState.marketCapThreshold);
+                    expect(newConverterCurrentState.stepWeight).to.be.bignumber.equal(oldConverterCurrentState.stepWeight);
+                    expect(newConverterCurrentState.minimumWeight).to.be.bignumber.equal(oldConverterCurrentState.minimumWeight);
+                    expect(newConverterCurrentState.lastWeightAdjustmentMarketCap).to.be.bignumber.equal(oldConverterCurrentState.lastWeightAdjustmentMarketCap);
                 }
                 for (let i = 0; i < newConverterCurrentState.reserveTokenCount.toNumber(); ++i) {
                     expect(newConverterCurrentState.reserveTokens[i].balance).to.be.bignumber.equal(upgradedReserveBalances[i]);

@@ -274,13 +274,17 @@ contract ConverterUpgrader is IConverterUpgrader, ContractRegistryClient {
             newConverter.activate(primaryReserveToken, oracleA, oracleB);
         }
         if(converterType == 3){ //Dynamic Liquid Token Converter
+            if(!_activate) { 
+                return;
+            }
+
             IDynamicLiquidTokenConverter oldConverter = IDynamicLiquidTokenConverter(address(_oldConverter));
             IDynamicLiquidTokenConverter newConverter = IDynamicLiquidTokenConverter(address(_newConverter));
             
+            newConverter.setLastWeightAdjustmentMarketCap(oldConverter.lastWeightAdjustmentMarketCap());
             newConverter.setMinimumWeight(oldConverter.minimumWeight());
             newConverter.setStepWeight(oldConverter.stepWeight());
             newConverter.setMarketCapThreshold(oldConverter.marketCapThreshold());
-            newConverter.setLastWeightAdjustmentMarketCap(oldConverter.lastWeightAdjustmentMarketCap());
         }
     }
 

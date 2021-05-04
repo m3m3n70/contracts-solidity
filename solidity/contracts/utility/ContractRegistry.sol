@@ -37,7 +37,7 @@ contract ContractRegistry is IContractRegistry, Owned, Utils {
       *
       * @return number of items
     */
-    function itemCount() public view returns (uint256) {
+    function itemCount() public view override returns (uint256) {
         return contractNames.length;
     }
 

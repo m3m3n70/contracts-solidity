@@ -14,10 +14,10 @@ import "../../../converter/types/liquid-token/LiquidTokenConverter.sol";
   * has been reached.
 */
 contract DynamicLiquidTokenConverter is LiquidTokenConverter {
-    uint32 public minimumWeight = 30000;
-    uint32 public stepWeight = 10000;
-    uint256 public marketCapThreshold = 10000 ether;
-    uint256 public lastWeightAdjustmentMarketCap = 0;
+    uint32 public minimumWeight;
+    uint32 public stepWeight;
+    uint256 public marketCapThreshold;
+    uint256 public lastWeightAdjustmentMarketCap;
 
     event ReserveTokenWeightUpdate(uint32 _prevWeight, uint32 _newWeight, uint256 _percentage, uint256 _balance);
     event StepWeightUpdated(uint32 stepWeight);
@@ -85,8 +85,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         ownerOnly
         inactive
     {
-        //require(_minimumWeight > 0, "Min weight 0");
-        //_validReserveWeight(_minimumWeight);
+        _validReserveWeight(_minimumWeight);
         minimumWeight = _minimumWeight;
         emit MinimumWeightUpdated(_minimumWeight);
     }
@@ -102,8 +101,7 @@ contract DynamicLiquidTokenConverter is LiquidTokenConverter {
         ownerOnly
         inactive
     {
-        //require(_stepWeight > 0, "Step weight 0");
-        //_validReserveWeight(_stepWeight);
+        _validReserveWeight(_stepWeight);
         stepWeight = _stepWeight;
         emit StepWeightUpdated(_stepWeight);
     }
