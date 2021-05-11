@@ -39,7 +39,8 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
       * @return number of items
     */
     function itemCount() public view override returns (uint256) {
-        return contractRegistry.itemCount();
+        IContractRegistry reg = contractRegistry.registry;
+        return reg.itemCount();
     }
     ///returns the item count for the dynamic registry, preserving the bancor registry count
     function dcrItemCount() public view returns (uint256) {
@@ -58,7 +59,8 @@ contract DynamicContractRegistry is IContractRegistry, Owned, Utils {
         if(items[_contractName].contractAddress != address(0)){
           return items[_contractName].contractAddress;
         }else{
-          return contractRegistry.addressOf(_contractName);
+          IContractRegistry reg = contractRegistry.registry;
+          return reg.addressOf(_contractName);
         }
     }
 
