@@ -14,7 +14,7 @@ const EtherToken = artifacts.require('EtherToken');
 const ERC20Token = artifacts.require('ERC20Token');
 const ContractRegistry = artifacts.require('ContractRegistry');
 const ConverterFactory = artifacts.require('ConverterFactory');
-const ConverterUpgrader = artifacts.require('ConverterUpgrader');
+const ConverterUpgrader = artifacts.require('DynamicConverterUpgrader');
 
 const DynamicLiquidTokenConverter = artifacts.require('DynamicLiquidTokenConverter');
 const DynamicLiquidTokenConverterFactory = artifacts.require('DynamicLiquidTokenConverterFactory');
