@@ -13,7 +13,7 @@ const ContractRegistry = artifacts.require('ContractRegistry');
 const DynamicContractRegistry = artifacts.require('DynamicContractRegistry');
 const ERC20Token = artifacts.require('ERC20Token');
 const ConverterFactory = artifacts.require('ConverterFactory');
-const ConverterUpgrader = artifacts.require('ConverterUpgrader');
+const ConverterUpgrader = artifacts.require('DynamicConverterUpgrader');
 
 contract('DynamicLiquidTokenConverter', accounts => {
     const MIN_RETURN = new BN(1);
@@ -126,13 +126,12 @@ contract('DynamicLiquidTokenConverter', accounts => {
 
     it('should revert when attempting to set the market cap threshold while the converter is active', async () => {
         const converter = await initConverter(true, false);
-
+        await converter.setMarketCapThreshold(new BN(10000));
         await expectRevert(converter.setMarketCapThreshold(new BN(10000)), 'ERR_ACTIVE');
     });
 
     it('should revert when attempting to set the minimum weight while the converter is active', async () => {
         const converter = await initConverter(true, false);
-
         await expectRevert(converter.setMinimumWeight(WEIGHT_20_PERCENT), 'ERR_ACTIVE');
     });
 
