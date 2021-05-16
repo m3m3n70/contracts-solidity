@@ -98,7 +98,7 @@ contract DynamicConverterUpgrader is IConverterUpgrader, ContractRegistryClient 
         DynamicLiquidTokenConverter converter = DynamicLiquidTokenConverter(_converter);
         address prevOwner = converter.owner();
         acceptConverterOwnership(converter);
-        DynamicLiquidTokenConverter newConverter = createConverter(converter);
+        IConverter newConverter = createConverter(converter);
         
         copyReserves(converter, newConverter);
         copyConversionFee(converter, newConverter);
@@ -142,9 +142,9 @@ contract DynamicConverterUpgrader is IConverterUpgrader, ContractRegistryClient 
       *
       * @return the new converter  new converter contract address
     */
-    function createConverter(DynamicLiquidTokenConverter _oldConverter) private returns (DynamicLiquidTokenConverter) {
+    function createConverter(IConverter _oldConverter) private returns (IConverter) {
         //if(_oldConverter.reserveTokens(0) == ETH_RESERVE_ADDRESS){}        
-        DynamicLiquidTokenConverter converter = 
+        IConverter converter = 
         DynamicLiquidTokenConverterFactory(addressOf(CONVERTER_FACTORY)).createConverter(
             _oldConverter.token(),
             registry,

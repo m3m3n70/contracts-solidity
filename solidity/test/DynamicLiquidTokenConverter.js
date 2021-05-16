@@ -127,23 +127,32 @@ contract('DynamicLiquidTokenConverter', accounts => {
     it('should revert when attempting to set the market cap threshold while the converter is active', async () => {
         const converter = await initConverter(true, false);
         await converter.setMarketCapThreshold(new BN(10000));
+        await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+        await converter.setStepWeight(new BN(10000));
         await expectRevert(converter.setMarketCapThreshold(new BN(10000)), 'ERR_ACTIVE');
     });
 
     it('should revert when attempting to set the minimum weight while the converter is active', async () => {
         const converter = await initConverter(true, false);
+        await converter.setMarketCapThreshold(new BN(10000));
+        await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+        await converter.setStepWeight(new BN(10000));
         await expectRevert(converter.setMinimumWeight(WEIGHT_20_PERCENT), 'ERR_ACTIVE');
     });
 
     it('should revert when attempting to set the step weight while the converter is active', async () => {
         const converter = await initConverter(true, false);
-
+        await converter.setMarketCapThreshold(new BN(10000));
+        await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+        await converter.setStepWeight(new BN(10000));
         await expectRevert(converter.setStepWeight(new BN(10000)), 'ERR_ACTIVE');
     });
 
     it('should revert when attempting to set the laste weight adjustment market cap while the converter is active', async () => {
         const converter = await initConverter(true, false);
-
+        await converter.setMarketCapThreshold(new BN(10000));
+        await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+        await converter.setStepWeight(new BN(10000));
         await expectRevert(converter.setLastWeightAdjustmentMarketCap(new BN(10000)), 'ERR_ACTIVE');
     });
 
@@ -181,7 +190,9 @@ contract('DynamicLiquidTokenConverter', accounts => {
 
             it('updates reserve ratio when changing reserve weight', async () => {
                 const converter = await getConverter();
-
+                await converter.setMarketCapThreshold(new BN(10000));
+        await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+        await converter.setStepWeight(new BN(10000));
                 await converter.reduceWeight(getReserveAddress());
 
                 const reserveRatio = await converter.reserveRatio.call();
@@ -193,7 +204,9 @@ contract('DynamicLiquidTokenConverter', accounts => {
                 const initialReserveBalance = INITIAL_THRESHOLD_AMOUNT.add(ONE);
 
                 const converter = await getConverter({ initialReserveBalance });
-
+                await converter.setMarketCapThreshold(new BN(10000));
+        await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+        await converter.setStepWeight(new BN(10000));
                 const res = await converter.reduceWeight(getReserveAddress());
 
                 expectEvent(res, 'ReserveTokenWeightUpdate', {
@@ -208,7 +221,9 @@ contract('DynamicLiquidTokenConverter', accounts => {
                 const initialReserveBalance = INITIAL_THRESHOLD_AMOUNT.add(ONE);
 
                 const converter = await getConverter({ initialReserveBalance });
-
+                await converter.setMarketCapThreshold(new BN(10000));
+                await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+                await converter.setStepWeight(new BN(10000));
                 const reserveTokenPrevBalance = await getBalance(reserveToken, getReserveAddress(), sender);
 
                 const res = await converter.reduceWeight(getReserveAddress());
@@ -228,7 +243,9 @@ contract('DynamicLiquidTokenConverter', accounts => {
                 const initialReserveBalance = INITIAL_THRESHOLD_AMOUNT.add(ONE);
 
                 const converter = await getConverter({ initialReserveBalance });
-
+                await converter.setMarketCapThreshold(new BN(10000));
+                await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+                await converter.setStepWeight(new BN(10000));
                 await converter.reduceWeight(getReserveAddress());
 
                 const newBalance = await converter.reserveBalance(getReserveAddress());
@@ -239,7 +256,9 @@ contract('DynamicLiquidTokenConverter', accounts => {
 
             it('updates reserve ratio once market cap has surpassed new threshold', async () => {
                 const converter = await getConverter();
-
+                await converter.setMarketCapThreshold(new BN(10000));
+                await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+                await converter.setStepWeight(new BN(10000));
                 await converter.reduceWeight(getReserveAddress());
 
                 // amount is one more than threshold
@@ -256,13 +275,17 @@ contract('DynamicLiquidTokenConverter', accounts => {
 
             it('should revert when market cap is not above threshold', async () => {
                 const converter = await getConverter({ initialReserveBalance: INITIAL_THRESHOLD_AMOUNT });
-
+                await converter.setMarketCapThreshold(new BN(10000));
+                await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+                await converter.setStepWeight(new BN(10000));
                 await expectRevert(converter.reduceWeight(getReserveAddress()), 'ERR_MARKET_CAP_BELOW_THRESHOLD');
             });
 
             it('should revert when market cap not increased by threshold between weight changes', async () => {
                 const converter = await getConverter();
-
+                await converter.setMarketCapThreshold(new BN(10000));
+                await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+                await converter.setStepWeight(new BN(10000));
                 await converter.reduceWeight(getReserveAddress());
 
                 // amount exactly reaches threshold
@@ -277,7 +300,9 @@ contract('DynamicLiquidTokenConverter', accounts => {
                 const converter = await getConverter({
                     initialReserveWeight: new BN(30000) // initial weight is equal to minimum
                 });
-
+                await converter.setMarketCapThreshold(new BN(10000));
+                await converter.setMinimumWeight(WEIGHT_20_PERCENT);
+                await converter.setStepWeight(new BN(10000));
                 await expectRevert(converter.reduceWeight(getReserveAddress()), 'ERR_INVALID_RESERVE_WEIGHT');
             });
         });
